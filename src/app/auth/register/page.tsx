@@ -57,7 +57,7 @@ export default function RegisterPage() {
         </div>
         <div className="mt-8 space-y-4">
           <button
-            onClick={() => router.push('/login/email')}
+            onClick={() => router.push('/auth/register/email')}
             type="button"
             className="group relative flex w-full justify-center rounded-md border border-[#ff00cc]/50 bg-gradient-to-r from-[#3300ff] to-[#ff00cc] px-4 py-3 text-base font-medium text-white shadow-[0_0_10px_rgba(255,0,204,0.5)] transition-all hover:shadow-[0_0_20px_rgba(255,0,204,0.7)] hover:scale-[1.02] focus:outline-none"
           >

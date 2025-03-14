@@ -1,31 +1,18 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useLogout } from '@/hooks/useAuth';
 import { Button } from "@/components/ui/button";
 
 export default function LogoutButton() {
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (response.ok) {
-        router.push('/login');
-      } else {
-        console.error('Logout failed');
-      }
-    } catch (error) {
-      console.error('An error occurred during logout:', error);
-    }
-  };
+  const logoutMutation = useLogout();
 
   return (
-    <Button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white">
-      Logout
+    <Button
+      onClick={() => logoutMutation.mutate()}
+      disabled={logoutMutation.isPending}
+      className="bg-red-500 hover:bg-red-600 text-white"
+    >
+      {logoutMutation.isPending ? "Logging out..." : "Logout"}
     </Button>
   );
 }

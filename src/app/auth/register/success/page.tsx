@@ -74,10 +74,16 @@ export default function OnboardingSuccess() {
 
                 {/* Action buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button className="px-8 py-3 rounded-lg font-bold text-lg tracking-wider bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-black shadow-[0_0_20px_rgba(232,121,249,0.7)] hover:shadow-[0_0_30px_rgba(232,121,249,0.9)] transition-all max-w-xs w-full mx-auto sm:mx-0">
+                    <button
+                        className="px-8 py-3 rounded-lg font-bold text-lg tracking-wider bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-black shadow-[0_0_20px_rgba(232,121,249,0.7)] hover:shadow-[0_0_30px_rgba(232,121,249,0.9)] transition-all max-w-xs w-full mx-auto sm:mx-0"
+                        onClick={() => router.push('/dashboard')}
+                    >
                         START EXPLORING
                     </button>
-                    <button onClick={() => router.push('/auth/register/profile')} className="px-8 py-3 rounded-lg font-bold text-lg tracking-wider border-2 border-cyan-400 text-cyan-300 hover:bg-cyan-400/20 hover:text-cyan-200 hover:shadow-[0_0_20px_rgba(0,255,255,0.5)] transition-all max-w-xs w-full mx-auto sm:mx-0">
+                    <button
+                        className="px-8 py-3 rounded-lg font-bold text-lg tracking-wider border-2 border-cyan-400 text-cyan-300 hover:bg-cyan-400/20 hover:text-cyan-200 hover:shadow-[0_0_20px_rgba(0,255,255,0.5)] transition-all max-w-xs w-full mx-auto sm:mx-0"
+                    // Skip tour button is now non-functional (no onClick handler)
+                    >
                         SKIP TOUR
                     </button>
                 </div>
