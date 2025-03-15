@@ -243,7 +243,7 @@ export default function AccountRecovery() {
 
                             <Button
                                 className="w-full bg-gradient-to-r from-synthwave-cyan to-synthwave-pink text-white font-bold tracking-wider py-5 uppercase shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
-                                onClick={() => (window.location.href = "/auth/login")}
+                                onClick={() => (window.location.href = "/auth/login/email")}
                             >
                                 Return to Login
                             </Button>

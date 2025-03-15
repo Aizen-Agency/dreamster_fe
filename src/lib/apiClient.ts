@@ -1,43 +1,54 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useAuthStore } from '@/store/authStore';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-
+// Create base axios instance
 const apiClient = axios.create({
-    baseURL: API_URL,
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Add a request interceptor to include the auth token in all requests
+// Add a request interceptor to include the auth token
 apiClient.interceptors.request.use(
     (config) => {
-        const token = Cookies.get('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        // Skip authentication for login and register endpoints
+        const isAuthEndpoint =
+            config.url?.includes('/auth/login') ||
+            config.url?.includes('/auth/register');
+
+        if (!isAuthEndpoint) {
+            // Try to get token from store first, then from cookies as fallback
+            const token = useAuthStore.getState().token || Cookies.get('token');
+
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
         }
+
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+        return Promise.reject(error);
+    }
 );
 
-// Add a response interceptor to handle common errors
+// Add a response interceptor to handle auth errors
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Handle 401 Unauthorized errors (token expired or invalid)
+        // Handle 401 Unauthorized errors
         if (error.response && error.response.status === 401) {
-            // Clear auth cookies
-            Cookies.remove('token');
-            Cookies.remove('isLoggedIn');
-            Cookies.remove('username');
+            // Clear auth state
+            useAuthStore.getState().logout();
 
-            // Redirect to login page if we're in a browser context
+            // Redirect to login page if we're in the browser
             if (typeof window !== 'undefined') {
-                window.location.href = '/auth/login';
+                window.location.href = '/auth/login/email';
             }
         }
+
         return Promise.reject(error);
     }
 );

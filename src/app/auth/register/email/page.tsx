@@ -55,7 +55,7 @@ export default function RegisterEmailPage() {
             <div
                 className="absolute inset-0 opacity-20"
                 style={{
-                    backgroundImage: `linear-gradient(#ff2cc9 1px, transparent 1px), linear-gradient(90deg, #ff2cc9 1px, transparent 1px)`,
+                    backgroundImage: `linear-gradient(#00ffff 1px, transparent 1px), linear-gradient(90deg, #00ffff 1px, transparent 1px)`,
                     backgroundSize: "40px 40px",
                     backgroundPosition: "-1px -1px",
                     perspective: "500px",
@@ -65,167 +65,161 @@ export default function RegisterEmailPage() {
             />
 
             {/* Sun/horizon glow */}
-            <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-fuchsia-600 to-transparent opacity-20" />
+            <div className="absolute bottom-0 left-0 right-0 h-60 bg-gradient-to-t from-fuchsia-600 via-purple-600 to-transparent opacity-30" />
 
-            <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.5)] border border-fuchsia-500/30 max-w-md w-full p-6 backdrop-blur-sm relative z-10">
-                <div className="space-y-8 text-white">
-                    {/* Header */}
-                    <div className="text-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-fuchsia-500 rounded-full mx-auto flex items-center justify-center mb-4">
-                            <Mail className="h-10 w-10 text-white" />
+            {/* Main content container */}
+            <div className="bg-gradient-to-br from-gray-950 to-indigo-950 rounded-lg shadow-[0_0_30px_rgba(255,0,255,0.7)] border border-fuchsia-400/50 max-w-md w-full p-8 backdrop-blur-sm relative z-10">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-fuchsia-300 tracking-wider">
+                        Create Your Account
+                    </h1>
+                    <p className="text-cyan-200 mt-2">Join the future of music discovery</p>
+                </div>
+
+                {/* Error message display */}
+                {registerMutation.error && (
+                    <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-3 rounded text-sm mb-6">
+                        {registerMutation.error?.response?.data?.message || "Registration failed. Please try again."}
+                    </div>
+                )}
+
+                {/* Registration Form */}
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Username Field */}
+                    <div className="space-y-2">
+                        <Label htmlFor="username" className="text-cyan-200 flex items-center gap-2">
+                            <User className="h-4 w-4 text-fuchsia-400" />
+                            Username
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                id="username"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                placeholder="Enter your username"
+                                required
+                                className="bg-indigo-950/50 border-indigo-700 focus:border-fuchsia-400 text-cyan-100 placeholder:text-indigo-400/70 py-5"
+                            />
                         </div>
-                        <h2 className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 tracking-wider">
-                            REGISTER WITH EMAIL
-                        </h2>
-                        <p className="text-cyan-200">Create your account to get started</p>
                     </div>
 
-                    {/* Registration Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="username" className="text-fuchsia-300 font-semibold">
-                                Username
-                            </Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
-                                <Input
-                                    id="username"
-                                    name="username"
-                                    type="text"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    placeholder="Choose a username"
-                                    required
-                                    className="bg-indigo-950/50 border-indigo-700/50 focus:border-cyan-400 text-white placeholder:text-indigo-400 pl-10"
-                                />
-                            </div>
+                    {/* Email Field */}
+                    <div className="space-y-2">
+                        <Label htmlFor="email" className="text-cyan-200 flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-fuchsia-400" />
+                            Email
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="Enter your email"
+                                required
+                                className="bg-indigo-950/50 border-indigo-700 focus:border-fuchsia-400 text-cyan-100 placeholder:text-indigo-400/70 py-5"
+                            />
                         </div>
+                    </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-fuchsia-300 font-semibold">
-                                Email Address
-                            </Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="your.email@example.com"
-                                    required
-                                    className="bg-indigo-950/50 border-indigo-700/50 focus:border-cyan-400 text-white placeholder:text-indigo-400 pl-10"
-                                />
-                            </div>
+                    {/* Password Field */}
+                    <div className="space-y-2">
+                        <Label htmlFor="password" className="text-cyan-200 flex items-center gap-2">
+                            <Lock className="h-4 w-4 text-fuchsia-400" />
+                            Password
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                id="password"
+                                name="password"
+                                type={showPassword ? "text" : "password"}
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="Create a password"
+                                required
+                                className="bg-indigo-950/50 border-indigo-700 focus:border-fuchsia-400 text-cyan-100 placeholder:text-indigo-400/70 py-5 pr-10"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-cyan-300"
+                            >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
                         </div>
+                    </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="text-fuchsia-300 font-semibold">
-                                Password
-                            </Label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
-                                <Input
-                                    id="password"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    placeholder="Create a strong password"
-                                    required
-                                    className="bg-indigo-950/50 border-indigo-700/50 focus:border-cyan-400 text-white placeholder:text-indigo-400 pl-10 pr-10"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="h-5 w-5 text-cyan-400" />
-                                    ) : (
-                                        <Eye className="h-5 w-5 text-cyan-400" />
-                                    )}
-                                </button>
-                            </div>
+                    {/* Confirm Password Field */}
+                    <div className="space-y-2">
+                        <Label htmlFor="confirmPassword" className="text-cyan-200 flex items-center gap-2">
+                            <Lock className="h-4 w-4 text-fuchsia-400" />
+                            Confirm Password
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                type={showPassword ? "text" : "password"}
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                                placeholder="Confirm your password"
+                                required
+                                className="bg-indigo-950/50 border-indigo-700 focus:border-fuchsia-400 text-cyan-100 placeholder:text-indigo-400/70 py-5 pr-10"
+                            />
                         </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmPassword" className="text-fuchsia-300 font-semibold">
-                                Confirm Password
-                            </Label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
-                                <Input
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    type={showPassword ? "text" : "password"}
-                                    value={formData.confirmPassword}
-                                    onChange={handleChange}
-                                    placeholder="Confirm your password"
-                                    required
-                                    className="bg-indigo-950/50 border-indigo-700/50 focus:border-cyan-400 text-white placeholder:text-indigo-400 pl-10"
-                                />
-                            </div>
-                            {passwordError && (
-                                <p className="text-red-400 text-sm">{passwordError}</p>
-                            )}
-                        </div>
-
-                        {registerMutation.error && (
-                            <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-2 rounded text-sm">
-                                {registerMutation.error instanceof Error
-                                    ? registerMutation.error.message
-                                    : "Registration failed. Please try again."}
-                            </div>
+                        {passwordError && (
+                            <p className="text-red-400 text-sm mt-1">{passwordError}</p>
                         )}
-
-                        <Button
-                            type="submit"
-                            disabled={registerMutation.isPending}
-                            className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white font-bold tracking-wider py-5 shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
-                        >
-                            {registerMutation.isPending ? (
-                                <div className="flex items-center">
-                                    <svg
-                                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                        ></circle>
-                                        <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        ></path>
-                                    </svg>
-                                    CREATING ACCOUNT...
-                                </div>
-                            ) : (
-                                <>
-                                    REGISTER <ArrowRight className="ml-2 h-5 w-5" />
-                                </>
-                            )}
-                        </Button>
-                    </form>
-
-                    {/* Login Option */}
-                    <div className="text-center pt-4">
-                        <p className="text-sm text-cyan-200">
-                            Already have an account?{" "}
-                            <Link href="/auth/login/email" className="text-fuchsia-400 hover:text-fuchsia-300 font-semibold">
-                                Sign in
-                            </Link>
-                        </p>
                     </div>
+
+                    {/* Submit Button */}
+                    <Button
+                        type="submit"
+                        disabled={registerMutation.isPending}
+                        className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white font-bold tracking-wider py-5 shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
+                    >
+                        {registerMutation.isPending ? (
+                            <div className="flex items-center">
+                                <svg
+                                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                </svg>
+                                CREATING ACCOUNT...
+                            </div>
+                        ) : (
+                            <>
+                                REGISTER <ArrowRight className="ml-2 h-5 w-5" />
+                            </>
+                        )}
+                    </Button>
+                </form>
+
+                {/* Login Option */}
+                <div className="text-center pt-4">
+                    <p className="text-sm text-cyan-200">
+                        Already have an account?{" "}
+                        <Link href="/auth/login/email" className="text-fuchsia-400 hover:text-fuchsia-300 font-semibold">
+                            Sign in
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>

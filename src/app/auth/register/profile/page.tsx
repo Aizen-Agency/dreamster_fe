@@ -2,16 +2,30 @@
 
 import { useState } from "react"
 import { Headphones, Mic } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useSetUserRole } from "@/hooks/useAuth"
 
 export default function ProfileSelection() {
     const [selectedProfile, setSelectedProfile] = useState<"fan" | "musician" | null>(null)
     const router = useRouter()
+    const setUserRoleMutation = useSetUserRole()
+    const searchParams = useSearchParams()
 
     const handleContinue = () => {
         if (selectedProfile) {
-            // Handle navigation to next step
-            console.log(`Selected profile: ${selectedProfile}`)
+            // Get the user ID from query params
+            const userId = searchParams.get('user_id')
+
+            if (!userId) {
+                console.error("User ID not found in URL parameters")
+                return
+            }
+
+            // Call the API to set the user role
+            setUserRoleMutation.mutate({
+                user_id: userId,
+                role: selectedProfile
+            })
         }
     }
 
@@ -34,12 +48,19 @@ export default function ProfileSelection() {
             <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-fuchsia-600 to-transparent opacity-20" />
 
             <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.5)] border border-fuchsia-500/30 max-w-xl w-full p-8 backdrop-blur-sm relative z-10">
-                <div className="text-center mb-8">
+                <div className="mb-6">
                     <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 tracking-wider">
                         CHOOSE YOUR PROFILE TYPE
                     </h1>
                     <p className="text-cyan-300 mt-2 opacity-80">Select how you want to use Dreamster</p>
                 </div>
+
+                {/* Error message display */}
+                {setUserRoleMutation.error && (
+                    <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-3 rounded text-sm mb-6">
+                        {setUserRoleMutation.error?.response?.data?.message || "Failed to set profile type. Please try again."}
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                     {/* Fan Profile Option */}
@@ -58,7 +79,7 @@ export default function ProfileSelection() {
                                 onChange={() => setSelectedProfile("fan")}
                             />
                             <div>
-                                <div className="flex flex-col items-center mb-4">
+                                <div className="flex flex-col items-center mb-3">
                                     <div
                                         className={`p-4 rounded-full mb-3 transition-all ${selectedProfile === "fan"
                                             ? "bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_10px_rgba(34,211,238,0.7)]"
@@ -67,7 +88,7 @@ export default function ProfileSelection() {
                                     >
                                         <Headphones className={`h-6 w-6 ${selectedProfile === "fan" ? "text-white" : "text-cyan-300"}`} />
                                     </div>
-                                    <h3 className="font-bold text-lg text-fuchsia-400">Fan Profile</h3>
+                                    <h3 className="font-bold text-lg text-cyan-400">Fan Profile</h3>
                                 </div>
                                 <p className="text-sm text-cyan-100/80 text-center">
                                     Discover new music, follow artists, and create playlists
@@ -92,7 +113,7 @@ export default function ProfileSelection() {
                                 onChange={() => setSelectedProfile("musician")}
                             />
                             <div>
-                                <div className="flex flex-col items-center mb-4">
+                                <div className="flex flex-col items-center mb-3">
                                     <div
                                         className={`p-4 rounded-full mb-3 transition-all ${selectedProfile === "musician"
                                             ? "bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-[0_0_10px_rgba(232,121,249,0.7)]"
@@ -112,7 +133,10 @@ export default function ProfileSelection() {
                 </div>
 
                 <div className="flex justify-between items-center">
-                    <button onClick={() => router.push('/auth/register/success')} className="text-cyan-300 text-sm flex items-center gap-1 hover:text-cyan-100 transition-colors">
+                    <button
+                        onClick={() => router.back()}
+                        className="text-cyan-300 text-sm flex items-center gap-1 hover:text-cyan-100 transition-colors"
+                    >
                         <span>←</span> Back
                     </button>
                     <button
@@ -120,10 +144,10 @@ export default function ProfileSelection() {
                             ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)]"
                             : "bg-gray-700 text-gray-400 cursor-not-allowed"
                             }`}
-                        disabled={!selectedProfile}
+                        disabled={!selectedProfile || setUserRoleMutation.isPending}
                         onClick={handleContinue}
                     >
-                        CONTINUE
+                        {setUserRoleMutation.isPending ? "PROCESSING..." : "CONTINUE"}
                     </button>
                 </div>
             </div>

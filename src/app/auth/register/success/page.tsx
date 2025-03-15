@@ -76,7 +76,7 @@ export default function OnboardingSuccess() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button
                         className="px-8 py-3 rounded-lg font-bold text-lg tracking-wider bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-black shadow-[0_0_20px_rgba(232,121,249,0.7)] hover:shadow-[0_0_30px_rgba(232,121,249,0.9)] transition-all max-w-xs w-full mx-auto sm:mx-0"
-                        onClick={() => router.push('/dashboard')}
+                        onClick={() => router.push('/auth/login/email')}
                     >
                         START EXPLORING
                     </button>

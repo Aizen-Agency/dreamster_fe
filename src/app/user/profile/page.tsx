@@ -2,10 +2,10 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { User, Key, Phone, Mail, Save, ArrowLeft } from "lucide-react"
+import { User, Key, Phone, Mail, Save, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useUserProfile } from "@/hooks/useAuth"
+import { useUpdateProfile } from "@/hooks/useProfile"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/authStore"
 
@@ -14,39 +14,25 @@ export default function ProfilePage() {
     const [currentTime, setCurrentTime] = useState("")
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
     const { isLoggedIn, user } = useAuthStore()
-    const {
-        data: userProfile,
-        isLoading,
-        isError,
-        error
-    } = useUserProfile()
+    const updateProfileMutation = useUpdateProfile()
 
     // Profile form state
     const [profile, setProfile] = useState({
-        name: user?.username || "",
+        username: user?.username || "",
         email: user?.email || "",
-        phone: "",
-        password: "••••••••",
+        phone_number: user?.phone_number || "",
+        password: "",
     })
-
-    // Update profile when data is loaded
-    useEffect(() => {
-        if (userProfile) {
-            setProfile({
-                name: userProfile.name || user?.username || "",
-                email: userProfile.email || user?.email || "",
-                phone: userProfile.phone || "",
-                password: "••••••••",
-            })
-        }
-    }, [userProfile, user])
 
     // Redirect if not logged in
     useEffect(() => {
         if (!isLoggedIn) {
-            router.push('/auth/login')
+            router.push('/auth/login/email')
         }
     }, [isLoggedIn, router])
 
@@ -64,26 +50,54 @@ export default function ProfilePage() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
-        setProfile((prev) => ({ ...prev, [name]: value }))
+        setProfile(prev => ({ ...prev, [name]: value }))
+        // Clear any previous messages when form is changed
+        setErrorMessage(null)
+        setSuccessMessage(null)
+        setSaved(false)
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSaving(true)
+        setErrorMessage(null)
+        setSuccessMessage(null)
 
-        // Simulate API call
-        setTimeout(() => {
+        // Prepare data for update (only include fields with values)
+        const updateData: Record<string, string> = {}
+
+        if (profile.username && profile.username.length >= 3) {
+            updateData.username = profile.username
+        }
+
+        if (profile.phone_number) {
+            updateData.phone_number = profile.phone_number
+        }
+
+        if (profile.password && profile.password.length >= 6) {
+            updateData.password = profile.password
+        }
+
+        // Only submit if there are changes
+        if (Object.keys(updateData).length > 0) {
+            try {
+                await updateProfileMutation.mutateAsync(updateData)
+                setSuccessMessage("Profile updated successfully")
+                setSaved(true)
+                // Clear password field after successful update
+                setProfile(prev => ({
+                    ...prev,
+                    password: ""
+                }))
+            } catch (error: any) {
+                setErrorMessage(error.message || "Failed to update profile. Please try again.")
+            } finally {
+                setSaving(false)
+            }
+        } else {
+            setErrorMessage("Please make changes before saving")
             setSaving(false)
-            setSaved(true)
-
-            // Update user in auth store
-            useAuthStore.getState().updateUser({
-                username: profile.name,
-                email: profile.email
-            })
-
-            setTimeout(() => setSaved(false), 2000)
-        }, 1500)
+        }
     }
 
     return (
@@ -105,7 +119,7 @@ export default function ProfilePage() {
             <div className="relative z-10 w-full max-w-md">
                 {/* Back button */}
                 <Button
-                    onClick={() => router.push('/dashboard')}
+                    onClick={() => user?.role === 'musician' ? router.push('/dashboard/musician') : router.push('/collection')}
                     variant="ghost"
                     className="mb-4 text-pink-300 hover:text-pink-100 hover:bg-pink-900/20"
                 >
@@ -127,20 +141,35 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
+                    {/* Error message display */}
+                    {errorMessage && (
+                        <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-3 rounded text-sm mb-6">
+                            {errorMessage}
+                        </div>
+                    )}
+
+                    {/* Success message display */}
+                    {successMessage && (
+                        <div className="bg-green-900/30 border border-green-500/50 text-green-200 p-3 rounded text-sm mb-6">
+                            {successMessage}
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <label htmlFor="name" className="block text-sm text-pink-300">
+                            <label htmlFor="username" className="block text-sm text-pink-300">
                                 DISPLAY NAME
                             </label>
                             <div className="relative">
                                 <User className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300" />
                                 <Input
-                                    id="name"
-                                    name="name"
+                                    id="username"
+                                    name="username"
                                     type="text"
-                                    value={profile.name}
+                                    value={profile.username}
                                     onChange={handleChange}
                                     className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 focus:border-cyan-400 focus:ring-cyan-400/50"
+                                    minLength={3}
                                 />
                             </div>
                         </div>
@@ -156,25 +185,27 @@ export default function ProfilePage() {
                                     name="email"
                                     type="email"
                                     value={profile.email}
-                                    onChange={handleChange}
-                                    className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 focus:border-cyan-400 focus:ring-cyan-400/50"
+                                    disabled
+                                    className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 opacity-70"
                                 />
                             </div>
+                            <p className="text-xs text-pink-300/70 mt-1">EMAIL CANNOT BE CHANGED</p>
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="phone" className="block text-sm text-pink-300">
+                            <label htmlFor="phone_number" className="block text-sm text-pink-300">
                                 PHONE NUMBER
                             </label>
                             <div className="relative">
                                 <Phone className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300" />
                                 <Input
-                                    id="phone"
-                                    name="phone"
-                                    type="tel"
-                                    value={profile.phone}
+                                    id="phone_number"
+                                    name="phone_number"
+                                    type="text"
+                                    value={profile.phone_number}
                                     onChange={handleChange}
                                     className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 focus:border-cyan-400 focus:ring-cyan-400/50"
+                                    placeholder="+1234567890"
                                 />
                             </div>
                         </div>
@@ -188,11 +219,23 @@ export default function ProfilePage() {
                                 <Input
                                     id="password"
                                     name="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     value={profile.password}
                                     onChange={handleChange}
                                     className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 focus:border-cyan-400 focus:ring-cyan-400/50"
+                                    minLength={6}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4 text-pink-400" />
+                                    ) : (
+                                        <Eye className="h-4 w-4 text-pink-400" />
+                                    )}
+                                </button>
                             </div>
                             <p className="text-xs text-pink-300/70 mt-1">LEAVE BLANK TO KEEP CURRENT PASSWORD</p>
                         </div>
@@ -202,26 +245,11 @@ export default function ProfilePage() {
                             disabled={saving}
                             className="w-full bg-gradient-to-r from-pink-500 to-cyan-500 hover:from-cyan-500 hover:to-pink-500 mt-6 shadow-[0_0_15px_rgba(236,72,153,0.3)]"
                         >
-                            {saving ? "SAVING..." : "SAVE PROFILE"}
-                            {!saving && <Save className="ml-2 h-4 w-4" />}
+                            {saving ? "SAVING..." : saved ? "SAVED" : "SAVE PROFILE"}
+                            {!saving && !saved && <Save className="ml-2 h-4 w-4" />}
                         </Button>
                     </form>
                 </div>
-
-                {/* Success Message */}
-                {saved && (
-                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-purple-900/80 backdrop-blur-sm">
-                        <div className="bg-gradient-to-br from-purple-800 to-fuchsia-900 border-2 border-pink-500 rounded-lg p-6 shadow-[0_0_30px_rgba(236,72,153,0.5)] max-w-sm w-full mx-4 animate-[pulse_2s_ease-in-out_infinite]">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-cyan-400 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(236,72,153,0.7)]">
-                                    <Save className="h-6 w-6 text-white" />
-                                </div>
-                                <h2 className="text-xl font-bold text-cyan-300 mb-2 tracking-wider">PROFILE UPDATED!</h2>
-                                <p className="text-pink-200 mb-4">YOUR PROFILE INFORMATION HAS BEEN SUCCESSFULLY SAVED.</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Footer */}
                 <div className="flex justify-between items-center text-xs text-pink-300/70 px-2">
