@@ -2,9 +2,9 @@ import apiClient from '@/lib/apiClient';
 import Cookies from 'js-cookie';
 
 export interface RegisterData {
-    username: string;
     email: string;
     password: string;
+    username: string;
 }
 
 export interface LoginData {
@@ -13,12 +13,23 @@ export interface LoginData {
 }
 
 export interface AuthResponse {
-    token: string;
     user: {
         id: string;
         username: string;
         email: string;
+        role?: string;
     };
+    token?: string;
+}
+
+export interface LoginResponse {
+    user: {
+        id: string;
+        username: string;
+        email: string;
+        role: string;
+    };
+    token: string;
 }
 
 export const authService = {
@@ -27,8 +38,13 @@ export const authService = {
         return response.data;
     },
 
-    async login(data: LoginData): Promise<AuthResponse> {
-        const response = await apiClient.post<AuthResponse>('/auth/login', data);
+    async setUserRole(data: { user_id: string; role: string }): Promise<any> {
+        const response = await apiClient.post('/auth/set-role', data);
+        return response.data;
+    },
+
+    async login(data: LoginData): Promise<LoginResponse> {
+        const response = await apiClient.post<LoginResponse>('/auth/login', data);
 
         // Store the JWT token and user info in cookies
         if (response.data.token) {
@@ -55,10 +71,8 @@ export const authService = {
     async logout(): Promise<void> {
         try {
             await apiClient.post('/auth/logout');
-        } catch (error) {
-            console.error('Logout API error:', error);
         } finally {
-            // Always clear cookies even if the API call fails
+            // Clear cookies regardless of API response
             Cookies.remove('token');
             Cookies.remove('isLoggedIn');
             Cookies.remove('username');
@@ -66,7 +80,16 @@ export const authService = {
     },
 
     async getUserProfile(): Promise<any> {
-        const response = await apiClient.get('/user/profile');
+        const response = await apiClient.get('/user');
+        return response.data;
+    },
+
+    async updateUserProfile(data: {
+        username?: string;
+        phone_number?: string;
+        password?: string;
+    }): Promise<any> {
+        const response = await apiClient.put('/user/update', data);
         return response.data;
     }
 }; 

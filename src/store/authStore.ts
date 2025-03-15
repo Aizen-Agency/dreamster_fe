@@ -6,6 +6,10 @@ interface User {
     username: string;
     email?: string;
     isSubaccount?: boolean;
+    role?: string;
+    id?: string;
+    avatar?: string;
+    phone_number?: string;
 }
 
 interface AuthState {
@@ -14,7 +18,7 @@ interface AuthState {
     token: string | null;
 
     // Actions
-    login: (username: string, isSubaccount: boolean, token?: string) => void;
+    login: (username: string, isSubaccount: boolean, token?: string, role?: string, id?: string, email?: string) => void;
     logout: () => void;
     updateUser: (userData: Partial<User>) => void;
 }
@@ -26,7 +30,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             token: null,
 
-            login: (username, isSubaccount, token) => {
+            login: (username, isSubaccount, token, role, id, email) => {
                 // Set cookies for backward compatibility
                 Cookies.set("isLoggedIn", "true", {
                     secure: true,
@@ -46,6 +50,30 @@ export const useAuthStore = create<AuthState>()(
                     expires: 7
                 });
 
+                if (role) {
+                    Cookies.set("role", role, {
+                        secure: true,
+                        sameSite: 'strict',
+                        expires: 7
+                    });
+                }
+
+                if (id) {
+                    Cookies.set("id", id, {
+                        secure: true,
+                        sameSite: 'strict',
+                        expires: 7
+                    });
+                }
+
+                if (email) {
+                    Cookies.set("email", email, {
+                        secure: true,
+                        sameSite: 'strict',
+                        expires: 7
+                    });
+                }
+
                 if (token) {
                     Cookies.set("token", token, {
                         secure: true,
@@ -56,7 +84,7 @@ export const useAuthStore = create<AuthState>()(
 
                 set({
                     isLoggedIn: true,
-                    user: { username, isSubaccount },
+                    user: { username, isSubaccount, role, id, email },
                     token: token || null
                 });
             },
@@ -66,6 +94,7 @@ export const useAuthStore = create<AuthState>()(
                 Cookies.remove("isLoggedIn");
                 Cookies.remove("username");
                 Cookies.remove("isSubaccount");
+                Cookies.remove("role");
                 Cookies.remove("token");
 
                 set({

@@ -11,6 +11,7 @@ import Link from "next/link"
 import { useLogin } from "@/hooks/useAuth"
 import { useAuthStore } from "@/store/authStore"
 import { useRouter } from "next/navigation"
+import Cookies from 'js-cookie'
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("")
@@ -19,15 +20,23 @@ export default function LoginScreen() {
     const [rememberMe, setRememberMe] = useState(false)
 
     const loginMutation = useLogin()
-    const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
     const router = useRouter()
 
     // Redirect if already logged in
     useEffect(() => {
+        const isLoggedIn = Cookies.get('isLoggedIn') === 'true';
         if (isLoggedIn) {
-            router.push('/dashboard')
+            const role = Cookies.get('role')
+            console.log(role)
+            if (role === 'musician') {
+                router.push('/dashboard/musician')
+            } else if (role === 'fan') {
+                router.push('/collection')
+            } else {
+                router.push('/dashboard/admin')
+            }
         }
-    }, [isLoggedIn, router])
+    }, [router])
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault()
@@ -135,11 +144,10 @@ export default function LoginScreen() {
                             </Label>
                         </div>
 
+                        {/* Error message display */}
                         {loginMutation.error && (
-                            <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-2 rounded text-sm">
-                                {loginMutation.error instanceof Error
-                                    ? loginMutation.error.message
-                                    : "Login failed. Please check your credentials."}
+                            <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-3 rounded text-sm mb-4">
+                                {loginMutation.error?.response?.data?.message || "Login failed. Please try again."}
                             </div>
                         )}
 
