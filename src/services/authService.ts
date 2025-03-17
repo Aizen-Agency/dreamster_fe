@@ -91,5 +91,24 @@ export const authService = {
     }): Promise<any> {
         const response = await apiClient.put('/user/update', data);
         return response.data;
+    },
+
+    async requestPasswordReset(email: string): Promise<any> {
+        const response = await apiClient.post('/auth/recovery/request-reset', { email });
+        return response.data;
+    },
+
+    async verifyResetCode(email: string, code: string): Promise<any> {
+        const response = await apiClient.post('/auth/recovery/verify-code', { email, code });
+        return response.data;
+    },
+
+    async resetPassword(email: string, reset_token: string, new_password: string): Promise<any> {
+        const response = await apiClient.post('/auth/recovery/reset-password', {
+            email,
+            reset_token,
+            new_password
+        });
+        return response.data;
     }
 }; 

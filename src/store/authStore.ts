@@ -31,7 +31,6 @@ export const useAuthStore = create<AuthState>()(
             token: null,
 
             login: (username, isSubaccount, token, role, id, email) => {
-                // Set cookies for backward compatibility
                 Cookies.set("isLoggedIn", "true", {
                     secure: true,
                     sameSite: 'strict',
