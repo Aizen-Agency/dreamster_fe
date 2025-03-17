@@ -10,6 +10,7 @@ const publicPages = [
   '/auth/login',
   '/auth/login/email',
   '/auth/register/success',
+  '/user/account/recovery',
   '/landingpage',
 ];
 

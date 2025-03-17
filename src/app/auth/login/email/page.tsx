@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useLogin } from "@/hooks/useAuth"
 import { useAuthStore } from "@/store/authStore"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Cookies from 'js-cookie'
 
 export default function LoginScreen() {
@@ -21,6 +21,8 @@ export default function LoginScreen() {
 
     const loginMutation = useLogin()
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const resetSuccess = searchParams.get("reset") === "success"
 
     // Redirect if already logged in
     useEffect(() => {
@@ -148,6 +150,12 @@ export default function LoginScreen() {
                         {loginMutation.error && (
                             <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-3 rounded text-sm mb-4">
                                 {loginMutation.error?.response?.data?.message || "Login failed. Please try again."}
+                            </div>
+                        )}
+
+                        {resetSuccess && (
+                            <div className="bg-green-900/30 border border-green-500/50 text-green-200 p-3 rounded text-sm mb-6">
+                                Password reset successful. You can now log in with your new password.
                             </div>
                         )}
 

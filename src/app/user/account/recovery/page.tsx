@@ -3,16 +3,20 @@
 import type React from "react"
 
 import { useState } from "react"
-import { ArrowLeft, Check, Mail, Shield } from "lucide-react"
+import { ArrowLeft, Check, Mail, Shield, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useRouter } from "next/navigation"
 
 export default function AccountRecovery() {
+    const router = useRouter()
     const [step, setStep] = useState<number>(1)
     const [email, setEmail] = useState<string>("")
     const [code, setCode] = useState<string[]>(Array(6).fill(""))
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
+    const [newPassword, setNewPassword] = useState<string>("")
+    const [confirmPassword, setConfirmPassword] = useState<string>("")
 
     const handleEmailSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -58,6 +62,31 @@ export default function AccountRecovery() {
                 return
             }
             setStep(3)
+        }, 1500)
+    }
+
+    const handlePasswordSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        setError(null)
+        setIsLoading(true)
+
+        // Password validation
+        if (newPassword.length < 8) {
+            setIsLoading(false)
+            setError("PASSWORD MUST BE AT LEAST 8 CHARACTERS")
+            return
+        }
+
+        if (newPassword !== confirmPassword) {
+            setIsLoading(false)
+            setError("PASSWORDS DO NOT MATCH")
+            return
+        }
+
+        // Simulate API call to reset password
+        setTimeout(() => {
+            setIsLoading(false)
+            setStep(4) // Move to success step
         }, 1500)
     }
 
@@ -109,7 +138,7 @@ export default function AccountRecovery() {
                         <p className="text-xs text-synthwave-pink uppercase">Regain Access To Your Account</p>
                     </div>
 
-                    <button className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-950 border border-synthwave-pink/30 hover:border-synthwave-pink transition-colors">
+                    <button onClick={() => window.history.back()} className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-950 border border-synthwave-pink/30 hover:border-synthwave-pink transition-colors">
                         <ArrowLeft className="w-5 h-5 text-synthwave-cyan" />
                     </button>
                 </div>
@@ -227,8 +256,72 @@ export default function AccountRecovery() {
                         </form>
                     )}
 
-                    {/* Step 3: Success */}
+                    {/* Step 3: New Password */}
                     {step === 3 && (
+                        <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                            <div className="space-y-2">
+                                <h2 className="text-xl font-bold text-synthwave-cyan uppercase tracking-wider text-center">
+                                    Create New Password
+                                </h2>
+                                <p className="text-sm text-synthwave-pink text-center uppercase">
+                                    Enter a new secure password for your account
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <Lock className="h-5 w-5 text-synthwave-pink" />
+                                    </div>
+                                    <Input
+                                        type="password"
+                                        placeholder="NEW PASSWORD"
+                                        className="pl-10 bg-indigo-900/40 border-synthwave-pink/30 text-white placeholder:text-synthwave-pink/50 focus:border-synthwave-cyan"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <Lock className="h-5 w-5 text-synthwave-pink" />
+                                    </div>
+                                    <Input
+                                        type="password"
+                                        placeholder="CONFIRM PASSWORD"
+                                        className="pl-10 bg-indigo-900/40 border-synthwave-pink/30 text-white placeholder:text-synthwave-pink/50 focus:border-synthwave-cyan"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                {error && <div className="text-red-400 text-sm uppercase text-center">{error}</div>}
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Button
+                                        type="button"
+                                        className="bg-indigo-900/40 border border-synthwave-pink/30 text-white font-bold tracking-wider py-5 uppercase hover:bg-indigo-900/60 transition-all duration-300"
+                                        onClick={() => setStep(2)}
+                                        disabled={isLoading}
+                                    >
+                                        Back
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        className="bg-gradient-to-r from-synthwave-cyan to-synthwave-pink text-white font-bold tracking-wider py-5 uppercase shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? "Updating..." : "Reset Password"}
+                                    </Button>
+                                </div>
+                            </div>
+                        </form>
+                    )}
+
+                    {/* Step 4: Success (previously step 3) */}
+                    {step === 4 && (
                         <div className="space-y-6 flex flex-col items-center">
                             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-synthwave-cyan to-synthwave-pink p-0.5 animate-glow">
                                 <div className="bg-indigo-950 rounded-full w-full h-full flex items-center justify-center">
@@ -237,13 +330,13 @@ export default function AccountRecovery() {
                             </div>
 
                             <div className="space-y-2 text-center">
-                                <h2 className="text-xl font-bold text-synthwave-cyan uppercase tracking-wider">Access Restored!</h2>
-                                <p className="text-sm text-synthwave-pink uppercase">Your account has been successfully recovered</p>
+                                <h2 className="text-xl font-bold text-synthwave-cyan uppercase tracking-wider">Password Reset Complete!</h2>
+                                <p className="text-sm text-synthwave-pink uppercase">Your password has been successfully updated</p>
                             </div>
 
                             <Button
                                 className="w-full bg-gradient-to-r from-synthwave-cyan to-synthwave-pink text-white font-bold tracking-wider py-5 uppercase shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
-                                onClick={() => (window.location.href = "/auth/login/email")}
+                                onClick={() => router.push("/auth/login/email")}
                             >
                                 Return to Login
                             </Button>
