@@ -685,6 +685,7 @@ export default function UserProfile() {
                                     Cancel
                                 </button>
                                 <button
+                                    onClick={() => router.push('/vsl')}
                                     type="submit"
                                     className="px-4 py-2 rounded font-medium bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all"
                                 >
