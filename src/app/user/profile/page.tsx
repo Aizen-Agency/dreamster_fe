@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { User, Key, Phone, Mail, Save, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useUpdateProfile } from "@/hooks/useProfile"
+import { useUpdateProfile, useUserProfile } from "@/hooks/useProfile"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/authStore"
 
@@ -17,16 +17,18 @@ export default function ProfilePage() {
     const [showPassword, setShowPassword] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
+    const { data: userProfile } = useUserProfile()
 
     const { isLoggedIn, user } = useAuthStore()
     const updateProfileMutation = useUpdateProfile()
 
     // Profile form state
+    console.log(userProfile)
     const [profile, setProfile] = useState({
-        username: user?.username || "",
-        email: user?.email || "",
-        phone_number: user?.phone_number || "",
-        password: "",
+        username: userProfile?.username ?? user?.username,
+        email: user?.email ?? "",
+        phone_number: userProfile?.phone_number ?? '',
+        password: userProfile?.password ?? "",
     })
 
     // Redirect if not logged in

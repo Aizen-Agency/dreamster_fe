@@ -80,7 +80,7 @@ export const authService = {
     },
 
     async getUserProfile(): Promise<any> {
-        const response = await apiClient.get('/user');
+        const response = await apiClient.get('/user/profile');
         return response.data;
     },
 

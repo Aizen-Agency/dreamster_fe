@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 
 // Create base axios instance
 const apiClient = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -21,9 +21,13 @@ apiClient.interceptors.request.use(
         if (!isAuthEndpoint) {
             // Try to get token from store first, then from cookies as fallback
             const token = useAuthStore.getState().token || Cookies.get('token');
+            console.log('Token found:', token ? 'Yes' : 'No');
 
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
+                console.log('Setting Authorization header');
+            } else {
+                console.log('No token available for request');
             }
         }
 
