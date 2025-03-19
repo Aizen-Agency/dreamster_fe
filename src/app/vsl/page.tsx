@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Play, Pause, Volume2, VolumeX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-// Sample video data
+import { useRouter } from "next/navigation"
+
 const videos = [
     { id: 1, title: "Intro to Dreamster.io", thumbnail: "/placeholder.svg?height=360&width=640" },
     { id: 2, title: "AI Mastering Demo", thumbnail: "/placeholder.svg?height=360&width=640" },
@@ -17,8 +18,8 @@ export default function VSLPage() {
     const [isMuted, setIsMuted] = useState(false)
     const [progress, setProgress] = useState(0)
     const [currentVideo, setCurrentVideo] = useState(videos[0])
+    const router = useRouter()
 
-    // Simulate video progress
     useEffect(() => {
         let interval: NodeJS.Timeout
 
@@ -78,7 +79,6 @@ export default function VSLPage() {
                 {/* Main Video Player */}
                 <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.5)] border border-fuchsia-500/30 mb-8 overflow-hidden backdrop-blur-sm">
                     <div className="relative aspect-video bg-black/50">
-                        {/* Video Placeholder */}
                         <div className="absolute inset-0 flex items-center justify-center">
                             <img
                                 src={currentVideo.thumbnail || "/placeholder.svg"}
@@ -100,7 +100,6 @@ export default function VSLPage() {
                             )}
                         </div>
 
-                        {/* Video Controls */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                             <div className="flex items-center justify-between mb-2">
                                 <button
@@ -132,7 +131,6 @@ export default function VSLPage() {
                     </div>
                 </div>
 
-                {/* Video Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     {videos.map((video) => (
                         <div
@@ -155,9 +153,8 @@ export default function VSLPage() {
                     ))}
                 </div>
 
-                {/* CTA Button */}
                 <div className="text-center">
-                    <Button className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white font-bold tracking-wider py-6 px-12 shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300 text-xl">
+                    <Button onClick={() => router.push('/user/musician/upload')} className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white font-bold tracking-wider py-6 px-12 shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300 text-xl">
                         GET STARTED NOW
                     </Button>
                 </div>

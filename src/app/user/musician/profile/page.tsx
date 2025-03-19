@@ -398,7 +398,7 @@ export default function UserProfile() {
                             </div>
                             <button
                                 className="px-4 py-2 rounded font-medium bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all flex items-center gap-2"
-                                onClick={() => setShowAddAssetModal(true)}
+                                onClick={() => router.push('/vsl')}
                             >
                                 <Plus className="h-4 w-4" />
                                 <span>Add Asset</span>
@@ -573,130 +573,6 @@ export default function UserProfile() {
                     </div>
                 </div>
             </div>
-
-            {/* Add Asset Modal */}
-            {showAddAssetModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_20px_rgba(255,44,201,0.5)] border border-fuchsia-500/30 max-w-md w-full p-6 backdrop-blur-sm">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-                                Add New Music Asset
-                            </h3>
-                            <button
-                                className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300"
-                                onClick={() => setShowAddAssetModal(false)}
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <form className="space-y-4">
-                            <div>
-                                <label htmlFor="title" className="block text-sm font-medium text-cyan-300 mb-1">
-                                    Title
-                                </label>
-                                <input
-                                    type="text"
-                                    id="title"
-                                    className="w-full bg-indigo-950/50 border border-cyan-500/30 rounded-md py-2 px-3 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                                    placeholder="Enter asset title"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="type" className="block text-sm font-medium text-cyan-300 mb-1">
-                                    Asset Type
-                                </label>
-                                <select
-                                    id="type"
-                                    className="w-full bg-indigo-950/50 border border-cyan-500/30 rounded-md py-2 px-3 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                                    required
-                                >
-                                    <option value="">Select type</option>
-                                    <option value="track">Track</option>
-                                    <option value="album">Album</option>
-                                    <option value="sample">Sample</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label htmlFor="releaseDate" className="block text-sm font-medium text-cyan-300 mb-1">
-                                    Release Date
-                                </label>
-                                <input
-                                    type="date"
-                                    id="releaseDate"
-                                    className="w-full bg-indigo-950/50 border border-cyan-500/30 rounded-md py-2 px-3 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="duration" className="block text-sm font-medium text-cyan-300 mb-1">
-                                    Duration (for tracks)
-                                </label>
-                                <input
-                                    type="text"
-                                    id="duration"
-                                    className="w-full bg-indigo-950/50 border border-cyan-500/30 rounded-md py-2 px-3 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                                    placeholder="e.g. 3:45"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-cyan-300 mb-1">Cover Image</label>
-                                <div className="border-2 border-dashed border-cyan-500/30 rounded-md p-6 flex flex-col items-center justify-center bg-indigo-950/30">
-                                    <ImageIcon className="h-10 w-10 text-cyan-300/50 mb-2" />
-                                    <p className="text-sm text-cyan-300/70 text-center mb-2">
-                                        Drag and drop an image, or click to browse
-                                    </p>
-                                    <button
-                                        type="button"
-                                        className="px-4 py-2 rounded text-sm font-medium bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors"
-                                    >
-                                        Browse Files
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-cyan-300 mb-1">Audio File</label>
-                                <div className="border-2 border-dashed border-fuchsia-500/30 rounded-md p-6 flex flex-col items-center justify-center bg-indigo-950/30">
-                                    <FileMusic className="h-10 w-10 text-fuchsia-400/50 mb-2" />
-                                    <p className="text-sm text-cyan-300/70 text-center mb-2">
-                                        Drag and drop an audio file, or click to browse
-                                    </p>
-                                    <button
-                                        type="button"
-                                        className="px-4 py-2 rounded text-sm font-medium bg-indigo-950/50 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-indigo-900/50 transition-colors"
-                                    >
-                                        Browse Files
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    className="px-4 py-2 rounded font-medium border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all"
-                                    onClick={() => setShowAddAssetModal(false)}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => router.push('/vsl')}
-                                    type="submit"
-                                    className="px-4 py-2 rounded font-medium bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all"
-                                >
-                                    Add Asset
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }
-

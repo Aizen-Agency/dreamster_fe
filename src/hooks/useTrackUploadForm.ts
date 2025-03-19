@@ -42,7 +42,7 @@ export const useTrackUploadForm = () => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent, onNext?: () => void) => {
         e.preventDefault();
 
         if (!audioFile) {
@@ -59,7 +59,6 @@ export const useTrackUploadForm = () => {
         setError(null);
 
         try {
-            // Parse tags from comma-separated string to array
             const parsedTags = tags
                 ? tags.split(",").map(tag => tag.trim()).filter(tag => tag !== "")
                 : [];
@@ -76,10 +75,14 @@ export const useTrackUploadForm = () => {
                 trackData.artwork = coverArt;
             }
 
-            await uploadTrackMutation.mutateAsync(trackData);
+            const response = await uploadTrackMutation.mutateAsync(trackData);
+            const uploadedTrackId = response.track.id;
 
-            // Navigate to the next step or show success
-            router.push("/user/musician/profile");
+            if (onNext) {
+                onNext();
+            } else {
+                router.push(`/user/musician/upload/pricing/${uploadedTrackId}`);
+            }
         } catch (err) {
             console.error("Error uploading track:", err);
             setError("Failed to upload track. Please try again.");
