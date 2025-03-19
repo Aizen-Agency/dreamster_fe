@@ -4,12 +4,8 @@ import { useState, useEffect } from "react"
 import { Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useRouter } from "next/navigation"
-import { useQueryClient } from "@tanstack/react-query"
-import axios from "axios"
-import { useAuthStore } from "@/store/authStore"
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+import { useRouter, useParams } from "next/navigation"
+import { useGetTrack, useUpdateTrack } from "@/hooks/useTrackManagement"
 
 export default function PricingPage({
     onNext,
@@ -19,59 +15,54 @@ export default function PricingPage({
     onBack?: () => void
 }) {
     const [initialPrice, setInitialPrice] = useState("10.00")
-    const [isUpdating, setIsUpdating] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
-    const queryClient = useQueryClient()
+    const params = useParams()
 
-    // Get the latest uploaded track ID from query client cache
-    const latestTrack = queryClient.getQueryData<any>(["tracks"])?.data?.[0]
-    const trackId = latestTrack?.id
+    // Get trackId from URL parameter
+    const trackId = params.trackId as string
+
+    // Fetch track details
+    const { data: trackData, isLoading, isError } = useGetTrack(trackId)
+
+    // Get update track mutation
+    const updateTrackMutation = useUpdateTrack(trackId)
+
+    // Set initial price from track data if available
+    useEffect(() => {
+        if (trackData && trackData.starting_price) {
+            setInitialPrice(trackData.starting_price.toString())
+        }
+    }, [trackData])
 
     const handlePriceUpdate = async () => {
         if (!trackId) {
-            setError("No track found to update. Please go back and upload a track first.")
+            setError("No track ID found. Please go back and upload a track first.")
             return
         }
 
-        setIsUpdating(true)
         setError(null)
+        const price = parseFloat(initialPrice)
+
+        if (isNaN(price) || price <= 0) {
+            setError("Please enter a valid price greater than 0")
+            return
+        }
 
         try {
-            const token = useAuthStore.getState().token
-            const price = parseFloat(initialPrice)
-
-            if (isNaN(price) || price <= 0) {
-                setError("Please enter a valid price greater than 0")
-                setIsUpdating(false)
-                return
-            }
-
-            await axios.patch(
-                `${API_BASE_URL}/musician/tracks/${trackId}/`,
-                { starting_price: price },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            )
-
-            // Invalidate and refetch tracks list
-            queryClient.invalidateQueries({ queryKey: ["tracks"] })
+            await updateTrackMutation.mutateAsync({
+                starting_price: price
+            })
 
             // Navigate to next step
             if (onNext) {
                 onNext()
             } else {
-                router.push("/user/musician/upload/publish")
+                router.push(`/user/musician/upload/perks/${trackId}`)
             }
         } catch (err) {
             console.error("Error updating track price:", err)
             setError("Failed to update track price. Please try again.")
-        } finally {
-            setIsUpdating(false)
         }
     }
 
@@ -81,6 +72,31 @@ export default function PricingPage({
         } else {
             router.push("/user/musician/upload")
         }
+    }
+
+    // Show loading state while fetching track data
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 flex items-center justify-center">
+                <div className="text-white">Loading track data...</div>
+            </div>
+        )
+    }
+
+    // Show error state if track data fetch fails
+    if (isError) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 flex items-center justify-center">
+                <div className="text-white bg-red-900/50 border border-red-500 p-4 rounded-md">
+                    Error loading track data. Please try again or go back to upload a new track.
+                    <div className="mt-4">
+                        <Button onClick={() => router.push("/user/musician/upload")}>
+                            Back to Upload
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -179,36 +195,49 @@ export default function PricingPage({
                         {/* Track Preview */}
                         <div className="bg-[#3a0062] rounded-lg p-4 mb-6 flex flex-col items-center">
                             <div className="w-16 h-16 bg-[#4a0072] rounded-lg flex items-center justify-center mb-4">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M9 18V6L21 3V15"
-                                        stroke="#00ccff"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
+                                {trackData?.artwork_url ? (
+                                    <img
+                                        src={trackData.artwork_url}
+                                        alt={trackData.title}
+                                        className="w-full h-full object-cover rounded-lg"
                                     />
-                                    <circle
-                                        cx="6"
-                                        cy="18"
-                                        r="3"
-                                        stroke="#00ccff"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                    <circle
-                                        cx="18"
-                                        cy="15"
-                                        r="3"
-                                        stroke="#00ccff"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
+                                ) : (
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 18V6L21 3V15"
+                                            stroke="#00ccff"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                        <circle
+                                            cx="6"
+                                            cy="18"
+                                            r="3"
+                                            stroke="#00ccff"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                        <circle
+                                            cx="18"
+                                            cy="15"
+                                            r="3"
+                                            stroke="#00ccff"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                )}
                             </div>
-                            <h3 className="text-[#00ccff] text-lg mb-1">Your Awesome Track</h3>
-                            <p className="text-gray-400 text-xs">September 2025</p>
+                            <h3 className="text-[#00ccff] text-lg mb-1">{trackData?.title || "Your Awesome Track"}</h3>
+                            <p className="text-gray-400 text-xs">
+                                {trackData?.created_at
+                                    ? new Date(trackData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                                    : "September 2025"
+                                }
+                            </p>
                         </div>
 
                         {/* Dynamic Pricing */}
@@ -299,16 +328,16 @@ export default function PricingPage({
                         variant="outline"
                         className="border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
                         onClick={handleBack}
-                        disabled={isUpdating}
+                        disabled={updateTrackMutation.isPending}
                     >
                         Back
                     </Button>
                     <Button
                         className="bg-[#00ccff] text-white hover:bg-[#00ccff]/80"
                         onClick={handlePriceUpdate}
-                        disabled={isUpdating}
+                        disabled={updateTrackMutation.isPending}
                     >
-                        {isUpdating ? "Updating..." : "Next Step"}
+                        {updateTrackMutation.isPending ? "Updating..." : "Next Step"}
                     </Button>
                 </div>
             </main>
@@ -319,5 +348,4 @@ export default function PricingPage({
             </footer>
         </div>
     )
-}
-
+} 

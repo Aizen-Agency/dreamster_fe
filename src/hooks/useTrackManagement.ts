@@ -33,7 +33,8 @@ const getAuthHeaders = () => {
     const token = useAuthStore.getState().token;
     return {
         headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
         }
     };
 };
@@ -80,7 +81,6 @@ export const useUploadTrack = () => {
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
-                        // Do NOT set Content-Type here - browser will set it automatically
                     }
                 }
             );

@@ -41,12 +41,8 @@ export default function UploadPage({ onNext }: { onNext?: () => void }) {
         router.push("/user/musician/profile");
     };
 
-    const handleNextStep = () => {
-        if (onNext) {
-            onNext();
-        } else {
-            router.push("/user/musician/upload/pricing");
-        }
+    const handleNextStep = (e: React.FormEvent) => {
+        handleSubmit(e, onNext);
     };
 
     return (
@@ -107,7 +103,7 @@ export default function UploadPage({ onNext }: { onNext?: () => void }) {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleNextStep}>
                     <div className="flex flex-col md:flex-row gap-6 items-stretch justify-center h-full">
                         {/* Audio Upload */}
                         <div
