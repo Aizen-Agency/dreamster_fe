@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Users,
     Search,
@@ -16,85 +16,195 @@ import {
     Music,
     Headphones,
     CheckCircle,
+    Loader2,
+    AlertCircle,
 } from "lucide-react"
 import Image from "next/image"
+import adminService, { AdminStats, UserDistribution } from "@/services/adminService"
+import { useRouter } from "next/navigation"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+
+interface User {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    role: string;
+    joined: string;
+    lastActive: string;
+    tracks?: number;
+    followers?: number;
+}
 
 export default function AdminDashboard() {
+    const router = useRouter()
     const [searchQuery, setSearchQuery] = useState("")
     const [filterRole, setFilterRole] = useState<string>("all")
     const [showFilters, setShowFilters] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const [totalUsers, setTotalUsers] = useState(0)
+    const [pageSize] = useState(10)
 
-    // Sample user data
-    const users = [
-        {
-            id: "USR001",
-            name: "Alex Johnson",
-            email: "alex@example.com",
-            avatar: "/placeholder.svg?height=40&width=40",
-            role: "musician",
-            joined: "Jun 15, 2023",
-            lastActive: "2 hours ago",
-            tracks: 12,
-            followers: 1240,
-        },
-        {
-            id: "USR002",
-            name: "Samantha Lee",
-            email: "samantha@example.com",
-            avatar: "/placeholder.svg?height=40&width=40",
-            role: "fan",
-            joined: "Aug 22, 2023",
-            lastActive: "5 days ago",
-            tracks: 0,
-            followers: 35,
-        },
-        {
-            id: "USR003",
-            name: "Michael Chen",
-            email: "michael@example.com",
-            avatar: "/placeholder.svg?height=40&width=40",
-            role: "musician",
-            joined: "Mar 10, 2023",
-            lastActive: "30 days ago",
-            tracks: 5,
-            followers: 320,
-        },
-        {
-            id: "USR004",
-            name: "Jessica Williams",
-            email: "jessica@example.com",
-            avatar: "/placeholder.svg?height=40&width=40",
-            role: "admin",
-            joined: "Jan 05, 2023",
-            lastActive: "Just now",
-            tracks: 0,
-            followers: 0,
-        },
-        {
-            id: "USR005",
-            name: "David Rodriguez",
-            email: "david@example.com",
-            avatar: "/placeholder.svg?height=40&width=40",
-            role: "fan",
-            joined: "Sep 30, 2023",
-            lastActive: "2 months ago",
-            tracks: 0,
-            followers: 12,
-        },
-    ]
+    // State for API data
+    const [users, setUsers] = useState<User[]>([])
+    const [loading, setLoading] = useState(true)
+    const [statsLoading, setStatsLoading] = useState(true)
+    const [distributionLoading, setDistributionLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [stats, setStats] = useState<AdminStats | null>(null)
+    const [distribution, setDistribution] = useState<UserDistribution | null>(null)
 
-    // Filter users based on search query and filters
-    const filteredUsers = users.filter((user) => {
-        const matchesSearch =
-            searchQuery === "" ||
-            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.id.toLowerCase().includes(searchQuery.toLowerCase())
+    // State for delete confirmation
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [userToDelete, setUserToDelete] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
-        const matchesRole = filterRole === "all" || user.role === filterRole
+    // Fetch users when search, filter, or page changes
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                setLoading(true)
+                const response = await adminService.getUsers(
+                    currentPage,
+                    pageSize,
+                    searchQuery,
+                )
+                setUsers(response.users)
+                setTotalPages(response.totalPages)
+                setTotalUsers(response.totalUsers)
+            } catch (err) {
+                console.error("Failed to fetch users:", err)
+                // setError("Failed to load users. Please try again.")
+                // ({
+                //     title: "Error",
+                //     description: "Failed to load users. Please try again.",
+                //     variant: "destructive",
+                // })
+            } finally {
+                setLoading(false)
+            }
+        }
 
-        return matchesSearch && matchesRole
-    })
+        fetchUsers()
+    }, [searchQuery, filterRole, currentPage, pageSize])
+
+    // Fetch dashboard stats
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                setStatsLoading(true)
+                const statsData = await adminService.getDashboardStats()
+                setStats(statsData)
+            } catch (err) {
+                console.error("Failed to fetch stats:", err)
+                // toast({
+                //     title: "Error",
+                //     description: "Failed to load dashboard statistics.",
+                //     variant: "destructive",
+                // })
+            } finally {
+                setStatsLoading(false)
+            }
+        }
+
+        fetchStats()
+    }, [])
+
+    // Fetch user distribution
+    useEffect(() => {
+        const fetchDistribution = async () => {
+            try {
+                setDistributionLoading(true)
+                const distributionData = await adminService.getUserDistribution()
+                setDistribution(distributionData)
+            } catch (err) {
+                console.error("Failed to fetch user distribution:", err)
+            } finally {
+                setDistributionLoading(false)
+            }
+        }
+
+        fetchDistribution()
+    }, [])
+
+    // Handle pagination
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1)
+        }
+    }
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1)
+        }
+    }
+
+    // Handle user deletion
+    const confirmDelete = (userId: string) => {
+        setUserToDelete(userId)
+        setDeleteDialogOpen(true)
+    }
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return
+
+        try {
+            setIsDeleting(true)
+            await adminService.deleteUser(userToDelete)
+
+            // Refresh user list
+            const response = await adminService.getUsers(
+                currentPage,
+                pageSize,
+                searchQuery,
+            )
+            setUsers(response.users)
+            setTotalPages(response.totalPages)
+            setTotalUsers(response.totalUsers)
+
+            // Refresh stats
+            const statsData = await adminService.getDashboardStats()
+            setStats(statsData)
+
+            // Refresh distribution
+            const distributionData = await adminService.getUserDistribution()
+            setDistribution(distributionData)
+
+            // toast({
+            //     title: "Success",
+            //     description: "User deleted successfully.",
+            // })
+        } catch (err) {
+            console.error("Failed to delete user:", err)
+            // toast({
+            //     title: "Error",
+            //     description: "Failed to delete user. Please try again.",
+            //     variant: "destructive",
+            // })
+        } finally {
+            setIsDeleting(false)
+            setDeleteDialogOpen(false)
+            setUserToDelete(null)
+        }
+    }
+
+    // Handle view user details
+    const handleViewUser = (userId: string) => {
+        router.push(`/dashboard/admin/users/${userId}`)
+    }
+
+    // Handle edit user
+    const handleEditUser = (userId: string) => {
+        router.push(`/dashboard/admin/users/${userId}/edit`)
+    }
+
+    // Handle add new user
+    const handleAddUser = () => {
+        router.push('/dashboard/admin/users/new')
+    }
 
     const getRoleIcon = (role: string) => {
         switch (role) {
@@ -145,7 +255,10 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                        <button className="px-6 py-2.5 rounded font-bold tracking-wider bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial">
+                        <button
+                            onClick={handleAddUser}
+                            className="px-6 py-2.5 rounded font-bold tracking-wider bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                        >
                             <UserPlus className="h-4 w-4" />
                             ADD NEW USER
                         </button>
@@ -162,13 +275,21 @@ export default function AdminDashboard() {
                                 <Users className="h-5 w-5 text-cyan-400" />
                             </div>
                         </div>
-                        <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
-                            5,234
-                        </div>
-                        <div className="flex items-center text-emerald-400 text-sm">
-                            <ArrowUpRight className="h-3 w-3 mr-1" />
-                            <span>+12.5% from last month</span>
-                        </div>
+                        {statsLoading ? (
+                            <div className="flex items-center justify-center h-16">
+                                <Loader2 className="h-6 w-6 text-cyan-400 animate-spin" />
+                            </div>
+                        ) : (
+                            <>
+                                <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
+                                    {stats?.total_users.count || "0"}
+                                </div>
+                                <div className="flex items-center text-emerald-400 text-sm">
+                                    <ArrowUpRight className="h-3 w-3 mr-1" />
+                                    <span>+{stats?.total_users.growth || 0}% from last month</span>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Active Users */}
@@ -179,13 +300,21 @@ export default function AdminDashboard() {
                                 <CheckCircle className="h-5 w-5 text-fuchsia-400" />
                             </div>
                         </div>
-                        <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
-                            4,182
-                        </div>
-                        <div className="flex items-center text-emerald-400 text-sm">
-                            <ArrowUpRight className="h-3 w-3 mr-1" />
-                            <span>+8.3% from last month</span>
-                        </div>
+                        {statsLoading ? (
+                            <div className="flex items-center justify-center h-16">
+                                <Loader2 className="h-6 w-6 text-fuchsia-400 animate-spin" />
+                            </div>
+                        ) : (
+                            <>
+                                <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
+                                    {stats?.musicians.active.count || "0"}
+                                </div>
+                                <div className="flex items-center text-emerald-400 text-sm">
+                                    <ArrowUpRight className="h-3 w-3 mr-1" />
+                                    <span>+{stats?.musicians.active.growth || 0}% from last month</span>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* New Signups */}
@@ -196,13 +325,21 @@ export default function AdminDashboard() {
                                 <BarChart3 className="h-5 w-5 text-amber-400" />
                             </div>
                         </div>
-                        <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
-                            342
-                        </div>
-                        <div className="flex items-center text-emerald-400 text-sm">
-                            <ArrowUpRight className="h-3 w-3 mr-1" />
-                            <span>+18.2% from last month</span>
-                        </div>
+                        {statsLoading ? (
+                            <div className="flex items-center justify-center h-16">
+                                <Loader2 className="h-6 w-6 text-amber-400 animate-spin" />
+                            </div>
+                        ) : (
+                            <>
+                                <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
+                                    {stats?.new_signups.count || "0"}
+                                </div>
+                                <div className="flex items-center text-emerald-400 text-sm">
+                                    <ArrowUpRight className="h-3 w-3 mr-1" />
+                                    <span>+{stats?.new_signups.growth || 0}% from last month</span>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -219,7 +356,10 @@ export default function AdminDashboard() {
                                     type="text"
                                     placeholder="Search users..."
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value)
+                                        setCurrentPage(1) // Reset to first page on search
+                                    }}
                                     className="w-full bg-indigo-950/50 border border-cyan-500/30 rounded-md py-2 pl-10 pr-4 text-cyan-100 placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                                 />
                             </div>
@@ -239,7 +379,10 @@ export default function AdminDashboard() {
                                 <label className="block text-sm text-cyan-300 mb-2">Filter by Role</label>
                                 <select
                                     value={filterRole}
-                                    onChange={(e) => setFilterRole(e.target.value)}
+                                    onChange={(e) => {
+                                        setFilterRole(e.target.value)
+                                        setCurrentPage(1) // Reset to first page on filter change
+                                    }}
                                     className="w-full bg-indigo-950/50 border border-cyan-500/30 rounded-md py-2 px-3 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                                 >
                                     <option value="all">All Roles</option>
@@ -252,85 +395,126 @@ export default function AdminDashboard() {
                     )}
 
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[800px]">
-                            <thead>
-                                <tr className="border-b border-indigo-800/50">
-                                    <th className="py-3 px-4 text-left text-cyan-300 font-medium">User</th>
-                                    <th className="py-3 px-4 text-left text-cyan-300 font-medium">Role</th>
-                                    <th className="py-3 px-4 text-left text-cyan-300 font-medium">Joined</th>
-                                    <th className="py-3 px-4 text-left text-cyan-300 font-medium">Last Active</th>
-                                    <th className="py-3 px-4 text-right text-cyan-300 font-medium">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredUsers.map((user) => (
-                                    <tr key={user.id} className="border-b border-indigo-800/30 hover:bg-indigo-900/20 transition-colors">
-                                        <td className="py-4 px-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)]">
-                                                    <div className="h-full w-full rounded-full overflow-hidden">
-                                                        <Image
-                                                            src={user?.avatar || "/placeholder.svg"}
-                                                            alt={user.name}
-                                                            width={40}
-                                                            height={40}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-fuchsia-400">{user.name}</div>
-                                                    <div className="text-xs text-cyan-300/70">{user.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-4">
-                                            <div className="flex items-center gap-1.5">
-                                                {getRoleIcon(user.role)}
-                                                <span className="text-cyan-100 capitalize">{user.role}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-4 text-cyan-100">{user.joined}</td>
-                                        <td className="py-4 px-4 text-cyan-100">{user.lastActive}</td>
-                                        <td className="py-4 px-4">
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300 hover:text-cyan-100"
-                                                    title="View User"
-                                                >
-                                                    <Eye className="h-5 w-5" />
-                                                </button>
-                                                <button
-                                                    className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400 hover:text-fuchsia-300"
-                                                    title="Edit User"
-                                                >
-                                                    <Edit className="h-5 w-5" />
-                                                </button>
-                                                <button
-                                                    className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-red-400 hover:text-red-300"
-                                                    title="Delete User"
-                                                >
-                                                    <Trash2 className="h-5 w-5" />
-                                                </button>
-                                            </div>
-                                        </td>
+                        {loading ? (
+                            <div className="flex justify-center items-center py-12">
+                                <Loader2 className="h-8 w-8 text-cyan-400 animate-spin mr-2" />
+                                <span className="text-cyan-300">Loading users...</span>
+                            </div>
+                        ) : error ? (
+                            <div className="flex justify-center items-center py-12 text-red-400">
+                                <AlertCircle className="h-6 w-6 mr-2" />
+                                <span>{error}</span>
+                            </div>
+                        ) : (
+                            <table className="w-full min-w-[800px]">
+                                <thead>
+                                    <tr className="border-b border-indigo-800/50">
+                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">User</th>
+                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Role</th>
+                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Joined</th>
+                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Last Active</th>
+                                        <th className="py-3 px-4 text-right text-cyan-300 font-medium">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {users.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="py-8 text-center text-cyan-300/70">
+                                                No users found matching your criteria
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        users.map((user) => (
+                                            <tr key={user.id} className="border-b border-indigo-800/30 hover:bg-indigo-900/20 transition-colors">
+                                                <td className="py-4 px-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)]">
+                                                            <div className="h-full w-full rounded-full overflow-hidden">
+                                                                <Image
+                                                                    src={user?.avatar || "/placeholder.svg"}
+                                                                    alt={user.name}
+                                                                    width={40}
+                                                                    height={40}
+                                                                    className="h-full w-full object-cover"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-medium text-fuchsia-400">{user.name}</div>
+                                                            <div className="text-xs text-cyan-300/70">{user.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <div className="flex items-center gap-1.5">
+                                                        {getRoleIcon(user.role)}
+                                                        <span className="text-cyan-100 capitalize">{user.role}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4 text-cyan-100">{user.joined}</td>
+                                                <td className="py-4 px-4 text-cyan-100">{user.lastActive}</td>
+                                                <td className="py-4 px-4">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300 hover:text-cyan-100"
+                                                            title="View User"
+                                                            onClick={() => handleViewUser(user.id)}
+                                                        >
+                                                            <Eye className="h-5 w-5" />
+                                                        </button>
+                                                        <button
+                                                            className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400 hover:text-fuchsia-300"
+                                                            title="Edit User"
+                                                            onClick={() => handleEditUser(user.id)}
+                                                        >
+                                                            <Edit className="h-5 w-5" />
+                                                        </button>
+                                                        <button
+                                                            className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-red-400 hover:text-red-300"
+                                                            title="Delete User"
+                                                            onClick={() => confirmDelete(user.id)}
+                                                        >
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
 
                     {/* Pagination */}
                     <div className="flex justify-between items-center mt-6">
                         <div className="text-sm text-cyan-300/70">
-                            Showing <span className="text-cyan-300">{filteredUsers.length}</span> of{" "}
-                            <span className="text-cyan-300">{users.length}</span> users
+                            {!loading && (
+                                <>
+                                    Showing <span className="text-cyan-300">{users.length}</span> of{" "}
+                                    <span className="text-cyan-300">{totalUsers}</span> users
+                                </>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <button className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors">
+                            <button
+                                className={`px-3 py-1.5 rounded text-sm font-medium ${currentPage === 1
+                                    ? 'bg-indigo-950/30 border border-cyan-500/10 text-cyan-300/50 cursor-not-allowed'
+                                    : 'bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors'
+                                    }`}
+                                onClick={handlePreviousPage}
+                                disabled={currentPage === 1}
+                            >
                                 Previous
                             </button>
-                            <button className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-950/50 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-indigo-900/50 transition-colors">
+                            <button
+                                className={`px-3 py-1.5 rounded text-sm font-medium ${currentPage === totalPages
+                                    ? 'bg-indigo-950/30 border border-fuchsia-500/10 text-fuchsia-400/50 cursor-not-allowed'
+                                    : 'bg-indigo-950/50 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-indigo-900/50 transition-colors'
+                                    }`}
+                                onClick={handleNextPage}
+                                disabled={currentPage === totalPages}
+                            >
                                 Next
                             </button>
                         </div>
@@ -371,74 +555,125 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* User distribution stats */}
-                        <div className="grid grid-cols-1 gap-4">
-                            {/* Musicians */}
-                            <div className="bg-indigo-950/30 rounded-lg border border-indigo-800/30 p-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <Music className="h-5 w-5 text-fuchsia-400" />
-                                        <span className="font-medium text-fuchsia-400">Musicians</span>
-                                    </div>
-                                    <span className="text-lg font-bold text-cyan-300">2,450</span>
-                                </div>
-                                <div className="w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-fuchsia-500 to-purple-600 rounded-full"
-                                        style={{ width: "47%" }}
-                                    ></div>
-                                </div>
-                                <div className="flex justify-between mt-1 text-xs text-cyan-300/70">
-                                    <span>47% of users</span>
-                                    <span>+12% this month</span>
-                                </div>
+                        {distributionLoading ? (
+                            <div className="flex items-center justify-center h-16">
+                                <Loader2 className="h-6 w-6 text-cyan-400 animate-spin" />
                             </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {/* Musicians */}
+                                <div className="bg-indigo-950/30 rounded-lg border border-indigo-800/30 p-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Music className="h-5 w-5 text-fuchsia-400" />
+                                            <span className="font-medium text-fuchsia-400">Musicians</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-cyan-300">
+                                            {distribution?.musicians.count.toLocaleString() || "0"}
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-fuchsia-500 to-purple-600 rounded-full"
+                                            style={{ width: `${distribution?.musicians.percentage}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between mt-1 text-xs text-cyan-300/70">
+                                        <span>{distribution?.musicians.percentage}% of users</span>
+                                        <span>+{distribution?.musicians.growth}% this month</span>
+                                    </div>
+                                </div>
 
-                            {/* Fans */}
-                            <div className="bg-indigo-950/30 rounded-lg border border-indigo-800/30 p-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <Headphones className="h-5 w-5 text-cyan-400" />
-                                        <span className="font-medium text-cyan-400">Fans</span>
+                                {/* Fans */}
+                                <div className="bg-indigo-950/30 rounded-lg border border-indigo-800/30 p-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Headphones className="h-5 w-5 text-cyan-400" />
+                                            <span className="font-medium text-cyan-400">Fans</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-cyan-300">
+                                            {distribution?.fans.count.toLocaleString() || "0"}
+                                        </span>
                                     </div>
-                                    <span className="text-lg font-bold text-cyan-300">2,734</span>
+                                    <div className="w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full"
+                                            style={{ width: `${distribution?.fans.percentage}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between mt-1 text-xs text-cyan-300/70">
+                                        <span>{distribution?.fans.percentage}% of users</span>
+                                        <span>+{distribution?.fans.growth}% this month</span>
+                                    </div>
                                 </div>
-                                <div className="w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full"
-                                        style={{ width: "52%" }}
-                                    ></div>
-                                </div>
-                                <div className="flex justify-between mt-1 text-xs text-cyan-300/70">
-                                    <span>52% of users</span>
-                                    <span>+18% this month</span>
-                                </div>
-                            </div>
 
-                            {/* Admins */}
-                            <div className="bg-indigo-950/30 rounded-lg border border-indigo-800/30 p-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <Shield className="h-5 w-5 text-amber-400" />
-                                        <span className="font-medium text-amber-400">Admins</span>
+                                {/* Admins */}
+                                <div className="bg-indigo-950/30 rounded-lg border border-indigo-800/30 p-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Shield className="h-5 w-5 text-amber-400" />
+                                            <span className="font-medium text-amber-400">Admins</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-cyan-300">
+                                            {distribution?.admins.count.toLocaleString() || "0"}
+                                        </span>
                                     </div>
-                                    <span className="text-lg font-bold text-cyan-300">50</span>
-                                </div>
-                                <div className="w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-amber-500 to-orange-600 rounded-full"
-                                        style={{ width: "1%" }}
-                                    ></div>
-                                </div>
-                                <div className="flex justify-between mt-1 text-xs text-cyan-300/70">
-                                    <span>1% of users</span>
-                                    <span>No change</span>
+                                    <div className="w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-amber-500 to-orange-600 rounded-full"
+                                            style={{ width: `${distribution?.admins.percentage}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between mt-1 text-xs text-cyan-300/70">
+                                        <span>{distribution?.admins.percentage}% of users</span>
+                                        <span>+{distribution?.admins.growth}% this month</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {/* Delete User Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="bg-indigo-950 border border-fuchsia-500/30 text-cyan-100">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+                            Confirm Deletion
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="py-4">
+                        Are you sure you want to delete this user? This action cannot be undone.
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteDialogOpen(false)}
+                            className="border-cyan-500/30 text-cyan-300 hover:text-cyan-100 hover:bg-indigo-900/50"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteUser}
+                            disabled={isDeleting}
+                            className="bg-red-500/80 hover:bg-red-500 text-white"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                "Delete User"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
+
 

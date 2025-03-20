@@ -1,26 +1,38 @@
 "use client"
 
 import { useState } from "react"
-import { Check, Eye, Plus, Minus } from "lucide-react"
+import { Minus, Plus, Check, Eye } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useTrackDetails } from "@/hooks/useTrackExplorer"
 
-const ApplePayIcon = () => (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-        <path d="M17.0444 6.553C16.2226 7.2744 15.0937 7.1563 14.2719 6.7128C13.5682 6.3098 12.9826 6.2508 12.1608 6.3098C10.8729 6.3688 9.82249 7.0902 9.23624 8.2411C8.35449 10.0139 8.88142 12.6118 10.4621 14.7394C11.1658 15.7034 12.1018 16.8444 13.3897 16.8149C14.3257 16.7854 14.7354 16.2634 15.9061 16.2634C17.1063 16.2634 17.4569 16.8149 18.4519 16.7854C19.7398 16.7559 20.5616 15.7329 21.2653 14.7689C21.8515 13.9589 22.1136 13.1489 22.1431 13.0899C22.1136 13.0604 20.0905 12.2209 20.0905 9.8589C20.0905 7.7904 21.7045 6.8264 21.7931 6.7674C20.7981 5.2617 19.2174 5.1731 18.6312 5.1436C17.2261 5.0551 16.0554 5.9306 15.3812 5.9306C14.7354 5.9306 13.7109 5.2027 12.5107 5.2322C10.6372 5.2617 8.88142 6.4716 7.97039 8.2706C7.05936 10.0729 7.17778 13.0899 9.05124 16.2339C9.99155 17.6806 11.1067 19.3042 12.5993 19.2747C13.8872 19.2452 14.3849 18.4057 15.9356 18.4057C17.4569 18.4057 17.9248 19.2452 19.2717 19.2747C20.6768 19.3042 21.6718 17.8575 22.6128 16.4108C23.3755 15.2304 23.7262 14.0795 23.7557 14.02C23.7262 13.9905 20.9713 12.8691 20.9713 9.8884M14.8876 4.2681C15.4738 3.5467 15.8835 2.5237 15.7651 1.5007C14.8876 1.5302 13.8282 2.0522 13.2125 2.7736C12.6558 3.4065 12.1608 4.4295 12.3087 5.4231C13.2715 5.4821 14.3012 4.9896 14.8876 4.2681" />
-    </svg>
-)
+const ApplePayIcon = () => <span>Apple Pay</span>
 
 export default function TrackPurchase() {
     const [paymentMethod, setPaymentMethod] = useState<string>("credit-card")
     const [quantity, setQuantity] = useState(1)
-    const basePrice = 1.99
+    const router = useRouter()
+    const searchParams = useSearchParams()
+
+    // Get track details from URL parameters
+    const trackId = searchParams.get('id')
+    const trackTitle = searchParams.get('title')
+    const artistName = searchParams.get('artist')
+    const basePrice = parseFloat(searchParams.get('price') || "1.99")
+
+    // Fetch full track details if needed
+    const { data: trackData, isLoading } = useTrackDetails(trackId)
 
     const incrementQuantity = () => setQuantity((prev) => prev + 1)
     const decrementQuantity = () => setQuantity((prev) => Math.max(1, prev - 1))
 
     const totalPrice = (basePrice * quantity).toFixed(2)
+
+    // Use track data from API if available, otherwise use URL params
+    const title = trackData?.title || trackTitle || "Unknown Track"
+    const artist = trackData?.artist?.name || artistName || "Unknown Artist"
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
@@ -52,8 +64,8 @@ export default function TrackPurchase() {
                                 <span className="text-lg">♪</span>
                             </div>
                             <div>
-                                <h3 className="font-semibold text-cyan-300">Summer Nights</h3>
-                                <p className="text-sm text-fuchsia-300">by John Smith</p>
+                                <h3 className="font-semibold text-cyan-300">{title}</h3>
+                                <p className="text-sm text-fuchsia-300">by {artist}</p>
                             </div>
                         </div>
 
@@ -97,11 +109,15 @@ export default function TrackPurchase() {
                                 <div
                                     key={method.id}
                                     className={`border rounded-md p-3 flex items-center transition-all duration-300 ${paymentMethod === method.id
-                                            ? "border-cyan-400 bg-indigo-900/50 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
-                                            : "border-indigo-700/50 hover:border-cyan-400/50 bg-indigo-950/50"
+                                        ? "border-cyan-400 bg-indigo-900/50 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                                        : "border-indigo-700/50 hover:border-cyan-400/50 bg-indigo-950/50"
                                         }`}
                                 >
-                                    <RadioGroupItem value={method.id} id={method.id} className="sr-only" />
+                                    <RadioGroupItem
+                                        value={method.id}
+                                        id={method.id}
+                                        className="sr-only"
+                                    />
                                     <Label htmlFor={method.id} className="flex items-center cursor-pointer w-full">
                                         <span className="mr-2 text-2xl">{method.icon}</span>
                                         <span className="flex-grow">{method.label}</span>
@@ -128,15 +144,16 @@ export default function TrackPurchase() {
                                         <Check className="h-4 w-4 text-cyan-400 mt-1 mr-2" />
                                         <span className="text-sm text-cyan-200">{benefit}</span>
                                     </div>
-                                ),
+                                )
                             )}
                         </div>
-                    </div>
 
-                    {/* Complete Purchase Button */}
-                    <Button className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white font-bold tracking-wider py-5 shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300">
-                        COMPLETE PURCHASE
-                    </Button>
+                        <Button
+                            className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white font-bold py-3 rounded-md"
+                        >
+                            Complete Purchase
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
