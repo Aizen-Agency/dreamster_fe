@@ -3,10 +3,12 @@ import Cookies from 'js-cookie';
 import { useAuthStore } from '@/store/authStore';
 
 // Create base axios instance
+const token = useAuthStore.getState().token;
 const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api',
     headers: {
         'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ""
     },
 });
 
