@@ -24,6 +24,10 @@ export interface AdminStats {
             growth: number;
         };
     };
+    admins: {
+        count: number;
+        growth: number;
+    };
     tracks: {
         total: {
             count: number;
@@ -82,11 +86,22 @@ const adminService = {
     },
 
     // Get all users with pagination
-    getUsers: async (page = 1, limit = 10, search = '') => {
+    getUsers: async (page = 1, limit = 10, search = '', role = 'all') => {
         const response = await apiClient.get('/admin/users', {
             params: { page, limit, search },
             ...getAuthHeaders()
         });
+
+        if (role && role !== 'all') {
+            const filteredUsers = response.data.users.filter((user: any) => user.role === role);
+            return {
+                ...response.data,
+                users: filteredUsers,
+                totalUsers: filteredUsers.length,
+                totalPages: Math.ceil(filteredUsers.length / limit)
+            };
+        }
+
         return response.data;
     },
 

@@ -6,19 +6,30 @@ import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { usePlayerStore } from "@/store/playerStore"
 import { Progress } from "@/components/ui/progress"
-import { useTrackDetails, useTrackStream } from "@/hooks/useTrackExplorer"
+import { useTrackDetails, useTrackStream, useTrackLikes } from "@/hooks/useTrackExplorer"
 import { Button } from "@/components/ui/button"
 import * as Slider from "@radix-ui/react-slider"
+// import { toast } from "@/components/ui/use-toast"
+import { useAuthStore } from "@/store/authStore"
 
 export default function MusicPlayer() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const trackId = searchParams.get('id')
     const audioRef = useRef<HTMLAudioElement>(null)
+    const isAuthenticated = useAuthStore(state => !!state.token)
 
     // Fetch track details and stream URL
     const { data: trackData, isLoading: isLoadingTrack } = useTrackDetails(trackId)
     const { data: streamData, isLoading: isLoadingStream } = useTrackStream(trackId)
+
+    // Get like functionality
+    const {
+        isLiked,
+        likesCount,
+        toggleLike,
+        isLoading: isLoadingLikeStatus
+    } = useTrackLikes(trackId)
 
     // Player state from store
     const {
@@ -34,28 +45,25 @@ export default function MusicPlayer() {
     } = usePlayerStore()
 
     const [volume, setVolume] = useState(1)
-    const [isLiked, setIsLiked] = useState(false)
     const [loadingProgress, setLoadingProgress] = useState(0)
     const [isBuffering, setIsBuffering] = useState(false)
+    const [isAudioReady, setIsAudioReady] = useState(false)
 
     // Set track and stream URL when data is loaded
     useEffect(() => {
         if (trackData && !currentTrack) {
             setCurrentTrack(trackData)
+            // Ensure playback is paused by default
+            setIsPlaying(false)
         }
-    }, [trackData, currentTrack, setCurrentTrack])
+    }, [trackData, currentTrack, setCurrentTrack, setIsPlaying])
 
     // Set stream URL when available
     useEffect(() => {
         if (streamData?.stream_url) {
             setStreamUrl(streamData.stream_url)
-
-            // Set duration from stream data if available
-            if (streamData.duration) {
-                setDuration(streamData.duration)
-            }
         }
-    }, [streamData, setStreamUrl, setDuration])
+    }, [streamData, setStreamUrl])
 
     // Toggle play/pause
     const togglePlayPause = () => {
@@ -109,14 +117,25 @@ export default function MusicPlayer() {
         audioRef.current.volume = newVolume
     }
 
-    // Toggle like function
-    const toggleLike = () => {
-        setIsLiked(!isLiked)
+    // Handle like/unlike
+    const handleToggleLike = () => {
+        if (!isAuthenticated) {
+            // toast({
+            //     title: "Authentication required",
+            //     description: "Please sign in to like tracks",
+            //     variant: "destructive"
+            // })
+            return
+        }
+
+        if (!trackId) return
+
+        toggleLike(trackId)
     }
 
     // Handle purchase function
     const handlePurchase = () => {
-        router.push(`/checkout?trackId=${trackId}`)
+        router.push(`/music/purchase?id=${trackId}`)
     }
 
     useEffect(() => {
@@ -126,7 +145,9 @@ export default function MusicPlayer() {
         const updateProgress = () => setCurrentTime(audio.currentTime)
         const handleDurationChange = () => {
             if (audio.duration && !isNaN(audio.duration)) {
+                // Always use the audio element's duration directly
                 setDuration(audio.duration)
+                console.log("Duration set from audio:", audio.duration)
             }
         }
         const handleEnded = () => {
@@ -134,8 +155,14 @@ export default function MusicPlayer() {
             setCurrentTime(0)
         }
         const handleWaiting = () => setIsBuffering(true)
-        const handlePlaying = () => setIsBuffering(false)
-        const handleLoadStart = () => setLoadingProgress(0)
+        const handlePlaying = () => {
+            setIsBuffering(false)
+            setIsAudioReady(true)
+        }
+        const handleLoadStart = () => {
+            setLoadingProgress(0)
+            setIsAudioReady(false)
+        }
         const handleProgress = () => {
             if (audio.buffered.length > 0) {
                 const bufferedEnd = audio.buffered.end(audio.buffered.length - 1)
@@ -143,6 +170,14 @@ export default function MusicPlayer() {
                 if (duration > 0) {
                     setLoadingProgress((bufferedEnd / duration) * 100)
                 }
+            }
+        }
+        const handleCanPlayThrough = () => {
+            setIsAudioReady(true)
+            // Force duration update from the audio element
+            if (audio.duration && !isNaN(audio.duration)) {
+                setDuration(audio.duration)
+                console.log("Duration set from canplaythrough:", audio.duration)
             }
         }
 
@@ -153,6 +188,7 @@ export default function MusicPlayer() {
         audio.addEventListener("playing", handlePlaying)
         audio.addEventListener("loadstart", handleLoadStart)
         audio.addEventListener("progress", handleProgress)
+        audio.addEventListener("canplaythrough", handleCanPlayThrough)
 
         return () => {
             audio.removeEventListener("timeupdate", updateProgress)
@@ -162,24 +198,72 @@ export default function MusicPlayer() {
             audio.removeEventListener("playing", handlePlaying)
             audio.removeEventListener("loadstart", handleLoadStart)
             audio.removeEventListener("progress", handleProgress)
+            audio.removeEventListener("canplaythrough", handleCanPlayThrough)
         }
     }, [setDuration, setIsPlaying, setCurrentTime])
 
     // Set audio source when stream URL changes
     useEffect(() => {
         if (audioRef.current && streamData?.stream_url) {
+            // Reset states when source changes
+            setCurrentTime(0)
+            setLoadingProgress(0)
+            setIsBuffering(true)
+            setIsAudioReady(false)
+
+            // Set the source
             audioRef.current.src = streamData.stream_url
             audioRef.current.load()
 
-            // Auto-play if isPlaying is true
-            if (isPlaying) {
-                audioRef.current.play().catch(err => {
-                    console.error("Playback failed:", err)
-                    setIsPlaying(false)
-                })
+            // Force the audio to load and calculate duration without playing
+            const handleLoadedMetadata = () => {
+                if (audioRef.current && audioRef.current.duration && !isNaN(audioRef.current.duration)) {
+                    setDuration(audioRef.current.duration)
+                    console.log("Duration set from loadedmetadata:", audioRef.current.duration)
+                    setIsAudioReady(true)
+                    setIsBuffering(false)
+                }
+            }
+
+            // Use the canplaythrough event only for play state management
+            const handleCanPlayThrough = () => {
+                setIsAudioReady(true)
+                setIsBuffering(false)
+
+                // Only play if isPlaying is true (which should be false by default)
+                if (isPlaying) {
+                    audioRef.current?.play().catch(err => {
+                        console.error("Playback failed:", err)
+                        setIsPlaying(false)
+                    })
+                }
+            }
+
+            audioRef.current.addEventListener("loadedmetadata", handleLoadedMetadata)
+            audioRef.current.addEventListener("canplaythrough", handleCanPlayThrough)
+
+            return () => {
+                audioRef.current?.removeEventListener("loadedmetadata", handleLoadedMetadata)
+                audioRef.current?.removeEventListener("canplaythrough", handleCanPlayThrough)
             }
         }
-    }, [streamData, isPlaying, setIsPlaying])
+    }, [streamData, isPlaying, setIsPlaying, setCurrentTime, setDuration])
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const handleError = (e: ErrorEvent) => {
+            console.error("Audio playback error:", e);
+            setIsPlaying(false);
+        };
+
+        audio.addEventListener("error", handleError);
+
+        return () => {
+            audio.removeEventListener("error", handleError);
+        };
+    }, [setIsPlaying]);
 
     if (isLoadingTrack || isLoadingStream) {
         return (
@@ -246,39 +330,44 @@ export default function MusicPlayer() {
                                 <p className="text-cyan-300 text-base">{currentTrack.artist.name}</p>
                             </div>
                             <div className="mb-6">
-                                <button className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 w-[100%] text-white py-2 px-4 mb-4 rounded-full font-bold flex items-center text-sm flex justify-center items-center" onClick={togglePlayPause}>
-                                    {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-                                    {isPlaying ? "Pause" : "Play"}
+                                <button
+                                    className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 w-[100%] text-white py-2 px-4 mb-4 rounded-full font-bold flex items-center text-sm flex justify-center items-center"
+                                    onClick={togglePlayPause}
+                                    disabled={isBuffering && !isAudioReady}
+                                >
+                                    {isBuffering && !isAudioReady ? (
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                    ) : isPlaying ? (
+                                        <Pause size={24} />
+                                    ) : (
+                                        <Play size={24} />
+                                    )}
+                                    {isBuffering && !isAudioReady ? "Loading..." : isPlaying ? "Pause" : "Play"}
                                 </button>
                                 <div className="flex items-center gap-4 mb-4">
                                     <span className="text-sm text-cyan-300 min-w-[40px]">
                                         {formatTime(currentTime)}
                                     </span>
 
-                                    {/* Custom progress bar that replaces the slider but maintains the look */}
                                     <div
                                         className="relative flex-1 h-5 flex items-center cursor-pointer"
                                         onClick={handleProgressBarClick}
                                     >
-                                        {/* Background track */}
                                         <div className="bg-fuchsia-900 relative grow rounded-full h-1 w-full">
-                                            {/* Buffered progress */}
                                             <div
                                                 className="absolute bg-fuchsia-700/50 rounded-full h-full"
                                                 style={{ width: `${loadingProgress}%` }}
                                             />
-
-                                            {/* Playback progress */}
                                             <div
                                                 className="absolute bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-full h-full"
                                                 style={{ width: `${progressPercentage}%` }}
                                             />
-
-                                            {/* Thumb indicator */}
-                                            <div
-                                                className="absolute block w-3 h-3 bg-white rounded-full shadow-md hover:bg-fuchsia-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 transform -translate-y-1/2 top-1/2"
-                                                style={{ left: `calc(${progressPercentage}% - 6px)` }}
-                                            />
+                                            {isAudioReady && (
+                                                <div
+                                                    className="absolute block w-3 h-3 bg-white rounded-full shadow-md hover:bg-fuchsia-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 transform -translate-y-1/2 top-1/2"
+                                                    style={{ left: `calc(${progressPercentage}% - 6px)` }}
+                                                />
+                                            )}
                                         </div>
                                     </div>
 
@@ -316,7 +405,7 @@ export default function MusicPlayer() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={toggleLike}
+                                        onClick={handleToggleLike}
                                         className={`${isLiked ? "text-fuchsia-500" : "text-cyan-400"} hover:text-fuchsia-400`}
                                     >
                                         <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
@@ -327,6 +416,7 @@ export default function MusicPlayer() {
                         <div className="mt-4">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-cyan-300 font-bold text-xs">{currentTrack.description}</span>
+                                <span className="text-fuchsia-300 text-xs">{likesCount} likes</span>
                             </div>
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-fuchsia-300 font-bold text-lg">${currentTrack.starting_price?.toFixed(2) || "1.99"}</span>

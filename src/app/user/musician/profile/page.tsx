@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Music,
     Headphones,
@@ -23,6 +23,10 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { useArtistTracks } from "@/hooks/useArtistTracks"
+import { useAuthStore } from "@/store/authStore"
+import { usePlayerStore } from "@/store/playerStore"
+import { Track } from "@/types/track"
 
 type UserRole = "musician" | "fan" | "admin"
 
@@ -43,6 +47,38 @@ export default function UserProfile() {
     const [searchQuery, setSearchQuery] = useState("")
     const [showAddAssetModal, setShowAddAssetModal] = useState(false)
     const [isPlaying, setIsPlaying] = useState<string | null>(null)
+
+    // Get user ID from auth store
+    const userId = useAuthStore(state => state.user?.id)
+
+    // Player state
+    const { currentTrack, isPlaying: playerIsPlaying, setCurrentTrack, setIsPlaying: setPlayerIsPlaying } = usePlayerStore()
+
+    // Fetch artist tracks
+    const { data: artistTracksData, isLoading, error } = useArtistTracks(
+        userId || '',
+        {
+            per_page: 12,
+            sort_by: 'newest'
+        }
+    )
+
+    // Filter tracks based on search query
+    const filteredTracks = artistTracksData?.tracks.filter(track =>
+        track.title.toLowerCase().includes(searchQuery.toLowerCase())
+    ) || []
+
+    // Handle play button click
+    const handlePlayTrack = (track: Track) => {
+        if (currentTrack?.id === track.id) {
+            // Toggle play/pause if it's the current track
+            setPlayerIsPlaying(!playerIsPlaying)
+        } else {
+            // Set new track and start playing
+            setCurrentTrack(track)
+            setPlayerIsPlaying(true)
+        }
+    }
 
     // Mock user data
     const user = {
@@ -115,9 +151,6 @@ export default function UserProfile() {
         },
     ]
 
-    // Filter assets based on search query
-    const filteredAssets = musicAssets.filter((asset) => asset.title.toLowerCase().includes(searchQuery.toLowerCase()))
-
     const getRoleIcon = (role: UserRole) => {
         switch (role) {
             case "admin":
@@ -148,14 +181,6 @@ export default function UserProfile() {
                 return <FileMusic className="h-4 w-4" />
             case "sample":
                 return <Download className="h-4 w-4" />
-        }
-    }
-
-    const togglePlay = (id: string) => {
-        if (isPlaying === id) {
-            setIsPlaying(null)
-        } else {
-            setIsPlaying(id)
         }
     }
 
@@ -408,136 +433,138 @@ export default function UserProfile() {
 
                     {/* Grid View */}
                     {viewMode === "grid" && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredAssets.map((asset) => (
-                                <div
-                                    key={asset.id}
-                                    className="bg-indigo-950/50 rounded-lg overflow-hidden border border-fuchsia-500/30 hover:shadow-[0_0_10px_rgba(255,44,201,0.4)] transition-all"
-                                >
-                                    <div className="aspect-square relative group">
-                                        <Image
-                                            src={asset.cover || "/placeholder.svg"}
-                                            alt={asset.title}
-                                            width={300}
-                                            height={300}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            {asset.type === "track" && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {isLoading ? (
+                                <div className="col-span-full flex justify-center py-8">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-fuchsia-500"></div>
+                                </div>
+                            ) : error ? (
+                                <div className="col-span-full text-center text-red-400 py-8">
+                                    Failed to load tracks. Please try again.
+                                </div>
+                            ) : filteredTracks.length === 0 ? (
+                                <div className="col-span-full text-center text-cyan-300 py-8">
+                                    No tracks found. Try a different search or upload your first track.
+                                </div>
+                            ) : (
+                                filteredTracks.map((track) => (
+                                    <div
+                                        key={track.id}
+                                        className="group relative rounded-lg overflow-hidden aspect-square bg-indigo-900/30 border border-indigo-800/50 hover:border-cyan-500/50 transition-colors"
+                                    >
+                                        <div className="relative aspect-square">
+                                            <Image
+                                                src={track.artwork_url || "/placeholder.svg"}
+                                                alt={track.title}
+                                                width={300}
+                                                height={300}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <button
                                                     className="p-4 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_15px_rgba(232,121,249,0.7)] transform scale-90 group-hover:scale-100 transition-transform"
-                                                    onClick={() => togglePlay(asset.id)}
+                                                    onClick={() => handlePlayTrack(track)}
                                                 >
-                                                    {isPlaying === asset.id ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
+                                                    {currentTrack?.id === track.id && playerIsPlaying ? (
+                                                        <Pause className="h-6 w-6" />
+                                                    ) : (
+                                                        <Play className="h-6 w-6 ml-1" />
+                                                    )}
                                                 </button>
-                                            )}
-                                        </div>
-                                        <div className="absolute top-2 right-2">
-                                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-900/80 text-cyan-300 border border-cyan-500/30 capitalize">
-                                                {asset.type}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="p-4">
-                                        <h3 className="text-lg font-semibold text-fuchsia-400 mb-1">{asset.title}</h3>
-                                        <div className="flex items-center gap-2 text-xs text-cyan-300/70 mb-3">
-                                            <Calendar className="h-3 w-3" />
-                                            <span>{asset.releaseDate}</span>
-                                            {asset.duration && (
-                                                <>
-                                                    <span>•</span>
-                                                    <Clock className="h-3 w-3" />
-                                                    <span>{asset.duration}</span>
-                                                </>
-                                            )}
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex gap-4">
-                                                {asset.plays !== undefined && (
-                                                    <div className="flex items-center gap-1 text-cyan-300">
-                                                        <Play className="h-3 w-3" />
-                                                        <span>{asset.plays.toLocaleString()}</span>
-                                                    </div>
-                                                )}
-                                                {asset.downloads !== undefined && (
-                                                    <div className="flex items-center gap-1 text-cyan-300">
-                                                        <Download className="h-3 w-3" />
-                                                        <span>{asset.downloads.toLocaleString()}</span>
-                                                    </div>
-                                                )}
                                             </div>
-                                            <div className="flex gap-1">
-                                                <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
-                                                    <Share2 className="h-4 w-4" />
-                                                </button>
-                                                <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </button>
+                                            <div className="absolute top-2 right-2">
+                                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-900/80 text-cyan-300 border border-cyan-500/30 capitalize">
+                                                    track
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-indigo-950/80 backdrop-blur-sm">
+                                            <h3 className="font-medium text-fuchsia-400 truncate">{track.title}</h3>
+                                            <div className="flex justify-between items-center mt-2">
+                                                <div className="text-xs text-cyan-300/70">
+                                                    {new Date(track.created_at).toLocaleDateString()}
+                                                </div>
+                                                <div className="text-xs text-cyan-300/70">
+                                                    {track.stream_count || 0} plays
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     )}
 
                     {/* List View */}
                     {viewMode === "list" && (
-                        <div className="overflow-x-auto">
-                            <table className="w-full min-w-[800px]">
-                                <thead>
-                                    <tr className="border-b border-indigo-800/50">
-                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Asset</th>
-                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Type</th>
-                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Release Date</th>
-                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Duration</th>
-                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Plays</th>
-                                        <th className="py-3 px-4 text-left text-cyan-300 font-medium">Downloads</th>
-                                        <th className="py-3 px-4 text-right text-cyan-300 font-medium">Actions</th>
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-indigo-800/50">
+                                    <th className="py-3 px-4 text-left text-cyan-300 font-medium">Track</th>
+                                    <th className="py-3 px-4 text-left text-cyan-300 font-medium">Release Date</th>
+                                    <th className="py-3 px-4 text-left text-cyan-300 font-medium">Plays</th>
+                                    <th className="py-3 px-4 text-right text-cyan-300 font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={4} className="py-8 text-center">
+                                            <div className="flex justify-center">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-fuchsia-500"></div>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredAssets.map((asset) => (
-                                        <tr
-                                            key={asset.id}
-                                            className="border-b border-indigo-800/30 hover:bg-indigo-900/20 transition-colors"
-                                        >
+                                ) : error ? (
+                                    <tr>
+                                        <td colSpan={4} className="py-8 text-center text-red-400">
+                                            Failed to load tracks. Please try again.
+                                        </td>
+                                    </tr>
+                                ) : filteredTracks.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="py-8 text-center text-cyan-300">
+                                            No tracks found. Try a different search or upload your first track.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredTracks.map((track) => (
+                                        <tr key={track.id} className="border-b border-indigo-800/30 hover:bg-indigo-900/20 transition-colors">
                                             <td className="py-4 px-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)]">
-                                                        <div className="h-full w-full rounded overflow-hidden">
-                                                            <Image
-                                                                src={asset.cover || "/placeholder.svg"}
-                                                                alt={asset.title}
-                                                                width={40}
-                                                                height={40}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        </div>
+                                                    <div className="h-10 w-10 rounded bg-indigo-900/50 overflow-hidden">
+                                                        <Image
+                                                            src={track.artwork_url || "/placeholder.svg"}
+                                                            alt={track.title}
+                                                            width={40}
+                                                            height={40}
+                                                            className="h-full w-full object-cover"
+                                                        />
                                                     </div>
-                                                    <div className="font-medium text-fuchsia-400">{asset.title}</div>
+                                                    <div>
+                                                        <div className="font-medium text-fuchsia-400">{track.title}</div>
+                                                        <div className="text-xs text-cyan-300/70">{track.genre || "No genre"}</div>
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-4">
-                                                <div className="flex items-center gap-1.5">
-                                                    {getAssetTypeIcon(asset.type)}
-                                                    <span className="text-cyan-100 capitalize">{asset.type}</span>
-                                                </div>
+                                            <td className="py-4 px-4 text-cyan-300">
+                                                {new Date(track.created_at).toLocaleDateString()}
                                             </td>
-                                            <td className="py-4 px-4 text-cyan-100">{asset.releaseDate}</td>
-                                            <td className="py-4 px-4 text-cyan-100">{asset.duration || "-"}</td>
-                                            <td className="py-4 px-4 text-cyan-100">{asset.plays?.toLocaleString() || "-"}</td>
-                                            <td className="py-4 px-4 text-cyan-100">{asset.downloads?.toLocaleString() || "-"}</td>
+                                            <td className="py-4 px-4 text-cyan-300">
+                                                {track.stream_count || 0}
+                                            </td>
                                             <td className="py-4 px-4">
                                                 <div className="flex justify-end gap-2">
-                                                    {asset.type === "track" && (
-                                                        <button
-                                                            className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300"
-                                                            onClick={() => togglePlay(asset.id)}
-                                                        >
-                                                            {isPlaying === asset.id ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                                                        </button>
-                                                    )}
+                                                    <button
+                                                        className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300"
+                                                        onClick={() => handlePlayTrack(track)}
+                                                    >
+                                                        {currentTrack?.id === track.id && playerIsPlaying ? (
+                                                            <Pause className="h-5 w-5" />
+                                                        ) : (
+                                                            <Play className="h-5 w-5" />
+                                                        )}
+                                                    </button>
                                                     <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
                                                         <Download className="h-5 w-5" />
                                                     </button>
@@ -550,27 +577,30 @@ export default function UserProfile() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     )}
 
                     {/* Pagination */}
-                    <div className="flex justify-between items-center mt-6">
-                        <div className="text-sm text-cyan-300/70">
-                            Showing <span className="text-cyan-300">{filteredAssets.length}</span> of{" "}
-                            <span className="text-cyan-300">{musicAssets.length}</span> assets
+                    {artistTracksData && artistTracksData.pages > 1 && (
+                        <div className="flex justify-center mt-8">
+                            <div className="flex space-x-2">
+                                {Array.from({ length: artistTracksData.pages }, (_, i) => (
+                                    <button
+                                        key={i}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center ${artistTracksData.current_page === i + 1
+                                                ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
+                                                : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300"
+                                            }`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors">
-                                Previous
-                            </button>
-                            <button className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-950/50 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-indigo-900/50 transition-colors">
-                                Next
-                            </button>
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
