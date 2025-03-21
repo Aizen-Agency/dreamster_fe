@@ -18,21 +18,15 @@ export default function TrackPurchase() {
 
     // Get track details from URL parameters
     const trackId = searchParams.get('id')
-    const trackTitle = searchParams.get('title')
-    const artistName = searchParams.get('artist')
-    const basePrice = parseFloat(searchParams.get('price') || "1.99")
-
     // Fetch full track details if needed
     const { data: trackData, isLoading } = useTrackDetails(trackId)
 
     const incrementQuantity = () => setQuantity((prev) => prev + 1)
     const decrementQuantity = () => setQuantity((prev) => Math.max(1, prev - 1))
 
-    const totalPrice = (basePrice * quantity).toFixed(2)
-
     // Use track data from API if available, otherwise use URL params
-    const title = trackData?.title || trackTitle || "Unknown Track"
-    const artist = trackData?.artist?.name || artistName || "Unknown Artist"
+    const title = trackData?.title || "Unknown Track"
+    const artist = trackData?.artist?.name || "Unknown Artist"
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
@@ -133,7 +127,7 @@ export default function TrackPurchase() {
                         <div className="flex justify-between items-center mb-3">
                             <h3 className="font-semibold text-fuchsia-300">Total Price</h3>
                             <span className="font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-                                ${totalPrice}
+                                ${(trackData?.starting_price ?? 0) * quantity}
                             </span>
                         </div>
 

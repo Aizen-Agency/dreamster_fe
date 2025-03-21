@@ -24,6 +24,18 @@ import adminService, { AdminStats, UserDistribution } from "@/services/adminServ
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Line } from 'react-chartjs-2'
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js'
+import { CustomProgress } from "@/components/ui/custom-progress"
 
 interface User {
     id: string;
@@ -36,6 +48,17 @@ interface User {
     tracks?: number;
     followers?: number;
 }
+
+// Register Chart.js components
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+);
 
 export default function AdminDashboard() {
     const router = useRouter()
@@ -61,6 +84,9 @@ export default function AdminDashboard() {
     const [userToDelete, setUserToDelete] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
+    // Add this state at the top of your component with other state variables
+    const [chartRoleFilter, setChartRoleFilter] = useState('all');
+
     // Fetch users when search, filter, or page changes
     useEffect(() => {
         const fetchUsers = async () => {
@@ -70,6 +96,7 @@ export default function AdminDashboard() {
                     currentPage,
                     pageSize,
                     searchQuery,
+                    filterRole
                 )
                 setUsers(response.users)
                 setTotalPages(response.totalPages)
@@ -160,6 +187,7 @@ export default function AdminDashboard() {
                 currentPage,
                 pageSize,
                 searchQuery,
+                filterRole
             )
             setUsers(response.users)
             setTotalPages(response.totalPages)
@@ -191,19 +219,16 @@ export default function AdminDashboard() {
         }
     }
 
-    // Handle view user details
     const handleViewUser = (userId: string) => {
-        router.push(`/dashboard/admin/users/${userId}`)
+        // router.push(`/dashboard/admin/users/${userId}`)
     }
 
-    // Handle edit user
     const handleEditUser = (userId: string) => {
-        router.push(`/dashboard/admin/users/${userId}/edit`)
+        // router.push(`/dashboard/admin/users/${userId}/edit`)
     }
 
-    // Handle add new user
     const handleAddUser = () => {
-        router.push('/dashboard/admin/users/new')
+        // router.push('/dashboard/admin/users/new')
     }
 
     const getRoleIcon = (role: string) => {
@@ -218,6 +243,18 @@ export default function AdminDashboard() {
                 return <Users className="h-4 w-4 text-gray-400" />
         }
     }
+
+    const getLastSixMonths = () => {
+        const months = [];
+        const today = new Date();
+
+        for (let i = 5; i >= 0; i--) {
+            const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            months.push(month.toLocaleString('en-US', { month: 'short' }));
+        }
+
+        return months;
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black p-4 md:p-8 relative overflow-hidden">
@@ -295,7 +332,7 @@ export default function AdminDashboard() {
                     {/* Active Users */}
                     <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.3)] border border-fuchsia-500/30 p-6 backdrop-blur-sm">
                         <div className="flex justify-between items-start mb-4">
-                            <span className="text-cyan-300 font-medium">Active Users</span>
+                            <span className="text-cyan-300 font-medium">Active Musicians</span>
                             <div className="p-2 rounded-full bg-fuchsia-950/50 border border-fuchsia-500/30">
                                 <CheckCircle className="h-5 w-5 text-fuchsia-400" />
                             </div>
@@ -320,7 +357,7 @@ export default function AdminDashboard() {
                     {/* New Signups */}
                     <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.3)] border border-fuchsia-500/30 p-6 backdrop-blur-sm">
                         <div className="flex justify-between items-start mb-4">
-                            <span className="text-cyan-300 font-medium">New Signups</span>
+                            <span className="text-cyan-300 font-medium">New Fans</span>
                             <div className="p-2 rounded-full bg-amber-950/50 border border-amber-500/30">
                                 <BarChart3 className="h-5 w-5 text-amber-400" />
                             </div>
@@ -381,7 +418,8 @@ export default function AdminDashboard() {
                                     value={filterRole}
                                     onChange={(e) => {
                                         setFilterRole(e.target.value)
-                                        setCurrentPage(1) // Reset to first page on filter change
+                                        setUsers(users && users.filter((user) => user.role === e.target.value))
+                                        setCurrentPage(1)
                                     }}
                                     className="w-full bg-indigo-950/50 border border-cyan-500/30 rounded-md py-2 px-3 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                                 >
@@ -451,8 +489,10 @@ export default function AdminDashboard() {
                                                         <span className="text-cyan-100 capitalize">{user.role}</span>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 px-4 text-cyan-100">{user.joined}</td>
-                                                <td className="py-4 px-4 text-cyan-100">{user.lastActive}</td>
+                                                <td className="py-4 px-4 text-cyan-100">
+                                                    {user.joined ? new Date(user.joined).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : "-"}
+                                                </td>
+                                                <td className="py-4 px-4 text-cyan-100">{user.lastActive ?? 'Active'}</td>
                                                 <td className="py-4 px-4">
                                                     <div className="flex justify-end gap-2">
                                                         <button
@@ -529,18 +569,157 @@ export default function AdminDashboard() {
                             <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
                                 USER GROWTH
                             </h3>
-                            <button className="flex items-center gap-1 text-sm text-cyan-300 hover:text-cyan-100 transition-colors">
-                                Last 6 Months <ChevronDown className="h-4 w-4" />
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <select
+                                    value={chartRoleFilter}
+                                    onChange={(e) => setChartRoleFilter(e.target.value)}
+                                    className="bg-indigo-950/50 border border-cyan-500/30 rounded-md py-1.5 px-3 text-sm text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                                >
+                                    <option value="all">All Roles</option>
+                                    <option value="musicians">Musicians Only</option>
+                                    <option value="fans">Fans Only</option>
+                                    <option value="admins">Admins Only</option>
+                                </select>
+                                <button className="flex items-center gap-1 text-sm text-cyan-300 hover:text-cyan-100 transition-colors">
+                                    Last 6 Months <ChevronDown className="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Placeholder for chart */}
-                        <div className="h-64 bg-indigo-950/30 rounded-lg border border-indigo-800/30 flex items-center justify-center">
-                            <div className="text-center">
-                                <BarChart3 className="h-12 w-12 text-cyan-400 mx-auto mb-2 opacity-50" />
-                                <p className="text-cyan-300">User Growth Chart</p>
+                        {statsLoading ? (
+                            <div className="flex items-center justify-center h-64">
+                                <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
                             </div>
-                        </div>
+                        ) : (
+                            <div className="h-64">
+                                <Line
+                                    data={{
+                                        labels: getLastSixMonths(),
+                                        datasets: [
+                                            ...(chartRoleFilter === 'all' || chartRoleFilter === 'musicians' ? [
+                                                {
+                                                    label: 'Musicians',
+                                                    data: [
+                                                        Math.floor((stats?.musicians.total.count ?? 0) * 0.65),
+                                                        Math.floor((stats?.musicians.total.count ?? 0) * 0.7),
+                                                        Math.floor((stats?.musicians.total.count ?? 0) * 0.8),
+                                                        Math.floor((stats?.musicians.total.count ?? 0) * 0.85),
+                                                        Math.floor((stats?.musicians.total.count ?? 0) * 0.9),
+                                                        Math.floor(stats?.musicians.total.count ?? 0),
+                                                    ],
+                                                    borderColor: 'rgba(255, 44, 201, 1)',
+                                                    backgroundColor: 'rgba(255, 44, 201, 0.2)',
+                                                    tension: 0.4,
+                                                    fill: true,
+                                                }
+                                            ] : []),
+                                            ...(chartRoleFilter === 'all' || chartRoleFilter === 'fans' ? [
+                                                {
+                                                    label: 'Fans',
+                                                    data: [
+                                                        Math.floor((stats?.new_signups.count ?? 0) * 0.6),
+                                                        Math.floor((stats?.new_signups.count ?? 0) * 0.7),
+                                                        Math.floor((stats?.new_signups.count ?? 0) * 0.75),
+                                                        Math.floor((stats?.new_signups.count ?? 0) * 0.85),
+                                                        Math.floor((stats?.new_signups.count ?? 0) * 0.95),
+                                                        Math.floor(stats?.new_signups.count ?? 0),
+                                                    ],
+                                                    borderColor: 'rgba(0, 204, 255, 1)',
+                                                    backgroundColor: 'rgba(0, 204, 255, 0.2)',
+                                                    tension: 0.4,
+                                                    fill: true,
+                                                }
+                                            ] : []),
+                                            ...(chartRoleFilter === 'all' || chartRoleFilter === 'admins' ? [
+                                                {
+                                                    label: 'Admins',
+                                                    data: [
+                                                        Math.floor((stats?.admins.count ?? 0) * 0.8),
+                                                        Math.floor((stats?.admins.count ?? 0) * 0.85),
+                                                        Math.floor((stats?.admins.count ?? 0) * 0.9),
+                                                        Math.floor((stats?.admins.count ?? 0) * 0.95),
+                                                        Math.floor((stats?.admins.count ?? 0) * 0.98),
+                                                        Math.floor(stats?.admins.count ?? 0),
+                                                    ],
+                                                    borderColor: 'rgba(251, 191, 36, 1)',
+                                                    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                                                    tension: 0.4,
+                                                    fill: true,
+                                                }
+                                            ] : []),
+                                            ...(chartRoleFilter === 'all' ? [
+                                                {
+                                                    label: 'Total Users',
+                                                    data: [
+                                                        Math.floor((stats?.total_users.count ?? 0) * 0.7),
+                                                        Math.floor((stats?.total_users.count ?? 0) * 0.75),
+                                                        Math.floor((stats?.total_users.count ?? 0) * 0.8),
+                                                        Math.floor((stats?.total_users.count ?? 0) * 0.85),
+                                                        Math.floor((stats?.total_users.count ?? 0) * 0.95),
+                                                        Math.floor(stats?.total_users.count ?? 0),
+                                                    ],
+                                                    borderColor: 'rgba(139, 92, 246, 1)',
+                                                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                                                    tension: 0.4,
+                                                    fill: true,
+                                                    borderDash: [5, 5],
+                                                }
+                                            ] : []),
+                                        ],
+                                    }}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                min: 0,
+                                                // max: (stats?.total_users.count ?? 0) * 1.2 || 0,
+                                                grid: {
+                                                    color: 'rgba(75, 85, 99, 0.2)',
+                                                },
+                                                ticks: {
+                                                    color: 'rgba(0, 204, 255, 0.7)',
+                                                    precision: 1,
+                                                    callback: function (tickValue: string | number) {
+                                                        if (typeof tickValue === 'number' && tickValue % 1 === 0) {
+                                                            return tickValue;
+                                                        }
+                                                    }
+                                                },
+                                            },
+                                            x: {
+                                                grid: {
+                                                    color: 'rgba(75, 85, 99, 0.2)',
+                                                },
+                                                ticks: {
+                                                    color: 'rgba(0, 204, 255, 0.7)',
+                                                },
+                                            },
+                                        },
+                                        plugins: {
+                                            legend: {
+                                                position: 'top',
+                                                labels: {
+                                                    color: 'rgba(0, 204, 255, 0.7)',
+                                                    font: {
+                                                        size: 12,
+                                                    },
+                                                },
+                                            },
+                                            tooltip: {
+                                                backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                                                titleColor: 'rgba(0, 204, 255, 1)',
+                                                bodyColor: 'rgba(255, 255, 255, 0.8)',
+                                                borderColor: 'rgba(255, 44, 201, 0.3)',
+                                                borderWidth: 1,
+                                            },
+                                        },
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* User Distribution */}
