@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -9,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTrackUploadForm } from "@/hooks/useTrackUploadForm"
 import { useRouter } from "next/navigation"
 
-export default function UploadPage() {
+export default function UploadPage({ onNext }: { onNext?: () => void }) {
     const router = useRouter();
     const { formState, handlers } = useTrackUploadForm();
 
@@ -42,7 +40,7 @@ export default function UploadPage() {
     };
 
     const handleNextStep = (e: React.FormEvent) => {
-        handleSubmit(e, () => router.push('/user/musician/upload/pricing'));
+        handleSubmit(e, onNext);
     };
 
     return (
