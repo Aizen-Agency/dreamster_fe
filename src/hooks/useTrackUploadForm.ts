@@ -42,7 +42,7 @@ export const useTrackUploadForm = () => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent, onNext?: () => void) => {
+    const handleSubmit = async (e: React.FormEvent, onNext?: (trackId: string) => void) => {
         e.preventDefault();
 
         if (!audioFile) {
@@ -79,7 +79,7 @@ export const useTrackUploadForm = () => {
             const uploadedTrackId = response.track.id;
 
             if (onNext) {
-                onNext();
+                onNext(uploadedTrackId);
             } else {
                 router.push(`/user/musician/upload/pricing/${uploadedTrackId}`);
             }

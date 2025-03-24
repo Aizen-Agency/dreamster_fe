@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import axios from "axios"
 import { useAuthStore } from "@/store/authStore"
@@ -22,11 +22,14 @@ export default function PricingPage({
     const [isUpdating, setIsUpdating] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const searchParams = useSearchParams()
     const queryClient = useQueryClient()
+
+    const trackIdFromParams = searchParams.get('trackId')
 
     // Get the latest uploaded track ID from query client cache
     const latestTrack = queryClient.getQueryData<any>(["tracks"])?.data?.[0]
-    const trackId = latestTrack?.id
+    const trackId = trackIdFromParams || latestTrack?.id
 
     const handlePriceUpdate = async () => {
         if (!trackId) {
@@ -65,7 +68,7 @@ export default function PricingPage({
             if (onNext) {
                 onNext()
             } else {
-                router.push("/user/musician/upload/publish")
+                router.push(`/user/musician/upload/publish?trackId=${trackId}`)
             }
         } catch (err) {
             console.error("Error updating track price:", err)
