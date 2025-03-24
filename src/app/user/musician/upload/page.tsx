@@ -9,7 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTrackUploadForm } from "@/hooks/useTrackUploadForm"
 import { useRouter } from "next/navigation"
 
-export default function UploadPage({ onNext }: { onNext?: () => void }) {
+interface UploadPageProps {
+    onNext?: () => void;
+}
+
+export default function UploadPage({ onNext }: UploadPageProps) {
     const router = useRouter();
     const { formState, handlers } = useTrackUploadForm();
 
@@ -212,6 +216,7 @@ export default function UploadPage({ onNext }: { onNext?: () => void }) {
                                     </svg>
                                     <p className="text-white text-center text-sm my-2">Drag and drop your cover art here</p>
                                     <p className="text-gray-400 text-xs mb-4 text-center">Supported formats: JPG, PNG, GIF</p>
+
                                     <label htmlFor="cover-upload">
                                         <div className="bg-[#00ccff] text-white px-3 py-1 rounded text-sm cursor-pointer hover:bg-[#00ccff]/80 transition">
                                             Choose Image
