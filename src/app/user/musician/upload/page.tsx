@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTrackUploadForm } from "@/hooks/useTrackUploadForm"
 import { useRouter } from "next/navigation"
 
-export default function UploadPage({ onNext }: { onNext?: () => void }) {
+export default function UploadPage() {
     const router = useRouter();
     const { formState, handlers } = useTrackUploadForm();
 
@@ -41,7 +41,9 @@ export default function UploadPage({ onNext }: { onNext?: () => void }) {
     };
 
     const handleNextStep = (e: React.FormEvent) => {
-        handleSubmit(e, onNext);
+        handleSubmit(e, (uploadedTrackId: string) => {
+            router.push(`/user/musician/upload/pricing?trackId=${uploadedTrackId}`);
+        });
     };
 
     return (
