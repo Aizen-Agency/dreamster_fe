@@ -26,6 +26,7 @@ export default function UploadPage() {
         coverArt,
         isSubmitting,
         error,
+        setError,
     } = formState;
 
     const {
@@ -42,7 +43,13 @@ export default function UploadPage() {
     };
 
     const handleNextStep = (e: React.FormEvent) => {
-        handleSubmit(e, () => router.push('/user/musician/upload/pricing'));
+        handleSubmit(e, (trackId) => {
+            if (trackId) {
+                router.push(`/user/musician/upload/pricing/${trackId}`);
+            } else {
+                setError("Failed to get track ID after upload. Please try again.");
+            }
+        });
     };
 
     return (
