@@ -126,7 +126,6 @@ export const useGetTrack = (trackId: string) => {
 // Update a track
 export const useUpdateTrack = (trackId: string) => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: async (trackData: Partial<Omit<TrackFormData, 'audio' | 'artwork'>>) => {
             const response = await axios.put(
