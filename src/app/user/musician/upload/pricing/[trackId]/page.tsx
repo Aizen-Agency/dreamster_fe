@@ -4,23 +4,19 @@ import { useState, useEffect } from "react"
 import { Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { useGetTrack, useUpdateTrack } from "@/hooks/useTrackManagement"
 
-export default function PricingPage({
-    onNext,
-    onBack,
-}: {
-    onNext?: () => void
-    onBack?: () => void
-}) {
+export default function PricingPage() {
     const [initialPrice, setInitialPrice] = useState("10.00")
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const params = useParams()
-
-    // Get trackId from URL parameter
+    const searchParams = useSearchParams()
     const trackId = params.trackId as string
+
+    // Get the return URL from search params if available
+    const returnUrl = searchParams.get('returnUrl')
 
     // Fetch track details
     const { data: trackData, isLoading, isError } = useGetTrack(trackId)
@@ -55,11 +51,7 @@ export default function PricingPage({
             })
 
             // Navigate to next step
-            if (onNext) {
-                onNext()
-            } else {
-                router.push(`/user/musician/upload/perks/${trackId}`)
-            }
+            router.push(returnUrl || `/user/musician/upload/perks/${trackId}`)
         } catch (err) {
             console.error("Error updating track price:", err)
             setError("Failed to update track price. Please try again.")
@@ -67,11 +59,7 @@ export default function PricingPage({
     }
 
     const handleBack = () => {
-        if (onBack) {
-            onBack()
-        } else {
-            router.push("/user/musician/upload")
-        }
+        router.push("/user/musician/upload")
     }
 
     // Show loading state while fetching track data

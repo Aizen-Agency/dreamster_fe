@@ -23,13 +23,7 @@ interface Perk {
     apiId?: string // To link with API perks
 }
 
-export default function PerksPage({
-    onNext,
-    onBack,
-}: {
-    onNext?: () => void
-    onBack?: () => void
-}) {
+export default function PerksPage() {
     const router = useRouter()
     const params = useParams()
     const trackId = params.trackId as string
@@ -263,11 +257,7 @@ export default function PerksPage({
     const enabledPerks = [...perks.filter(perk => perk.enabled), ...customPerks.filter(perk => perk.enabled)];
 
     const handleBack = () => {
-        if (onBack) {
-            onBack()
-        } else {
-            router.push(`/user/musician/upload/pricing/${trackId}`)
-        }
+        router.push(`/user/musician/upload/pricing/${trackId}`)
     }
 
     const handleFinalize = async () => {
@@ -290,11 +280,7 @@ export default function PerksPage({
             }
 
             // Navigate to next step
-            if (onNext) {
-                onNext()
-            } else {
-                router.push(`/user/musician/profile`)
-            }
+            router.push(`/user/musician/profile`)
         } catch (err) {
             console.error("Error finalizing perks:", err)
             setError("Failed to save perks. Please try again.")

@@ -42,7 +42,7 @@ export default function UploadPage() {
 
     const handleNextStep = (e: React.FormEvent) => {
         handleSubmit(e, (uploadedTrackId: string) => {
-            router.push(`/user/musician/upload/pricing?trackId=${uploadedTrackId}`);
+            router.push(`/user/musician/upload/pricing/${uploadedTrackId}`);
         });
     };
 
