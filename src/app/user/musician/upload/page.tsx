@@ -1,3 +1,4 @@
+'use client'
 import type React from "react"
 import { Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
