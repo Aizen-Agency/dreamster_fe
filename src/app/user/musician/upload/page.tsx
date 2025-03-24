@@ -9,11 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTrackUploadForm } from "@/hooks/useTrackUploadForm"
 import { useRouter } from "next/navigation"
 
-interface UploadPageProps {
-    onNext?: () => void;
-}
-
-export default function UploadPage({ onNext }: UploadPageProps) {
+export default function UploadPage({ onNext }: { onNext: () => void }) {
     const router = useRouter();
     const { formState, handlers } = useTrackUploadForm();
 
