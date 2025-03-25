@@ -11,13 +11,13 @@ export const useAdminDashboardStats = () => {
 };
 
 // Hook for fetching monthly trends
-export const useAdminMonthlyTrends = () => {
-    return useQuery({
-        queryKey: ['adminDashboard', 'monthlyTrends'],
-        queryFn: () => adminService.getMonthlyTrends(),
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    });
-};
+// export const useAdminMonthlyTrends = () => {
+//     return useQuery({
+//         queryKey: ['adminDashboard', 'monthlyTrends'],
+//         queryFn: () => adminService.(),
+//         staleTime: 5 * 60 * 1000, // 5 minutes
+//     });
+// };
 // Hook for fetching users list with filtering, sorting and pagination
 export const useAdminUsersList = (params: any = {}) => {
     return useQuery({
@@ -100,13 +100,13 @@ export const useAdminDashboard = () => {
 
     // Fetch data using the individual hooks
     const statsQuery = useAdminDashboardStats();
-    const trendsQuery = useAdminMonthlyTrends();
+    // const trendsQuery = useAdminMonthlyTrends();
     const usersQuery = useAdminUsersList(usersParams);
 
     return {
         // Data queries
         stats: statsQuery,
-        trends: trendsQuery,
+        // trends: trendsQuery,
         users: usersQuery,
 
         // State management
@@ -117,9 +117,9 @@ export const useAdminDashboard = () => {
         resetFilters,
 
         // Helper for checking if any query is loading
-        isLoading: statsQuery.isLoading || trendsQuery.isLoading || usersQuery.isLoading,
+        isLoading: statsQuery.isLoading || usersQuery.isLoading,
 
         // Helper for checking if any query has an error
-        isError: statsQuery.isError || trendsQuery.isError || usersQuery.isError,
+        isError: statsQuery.isError || usersQuery.isError,
     };
 }; 
