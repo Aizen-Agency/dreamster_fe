@@ -6,18 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import axios from "axios"
 import { useAuthStore } from "@/store/authStore"
+import { useUpdateTrack } from "@/hooks/useTrackManagement"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
-export default function PricingPage({
-    onNext,
-    onBack,
-}: {
-    onNext?: () => void
-    onBack?: () => void
-}) {
+export default function PricingPage() {
     const [initialPrice, setInitialPrice] = useState("10.00")
     const [isUpdating, setIsUpdating] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -27,9 +21,10 @@ export default function PricingPage({
 
     const trackIdFromParams = searchParams.get('trackId')
 
-    // Get the latest uploaded track ID from query client cache
     const latestTrack = queryClient.getQueryData<any>(["tracks"])?.data?.[0]
     const trackId = trackIdFromParams || latestTrack?.id
+
+    const updateTrackMutation = useUpdateTrack(trackId || '')
 
     const handlePriceUpdate = async () => {
         if (!trackId) {
@@ -41,7 +36,6 @@ export default function PricingPage({
         setError(null)
 
         try {
-            const token = useAuthStore.getState().token
             const price = parseFloat(initialPrice)
 
             if (isNaN(price) || price <= 0) {
@@ -50,26 +44,11 @@ export default function PricingPage({
                 return
             }
 
-            await axios.patch(
-                `${API_BASE_URL}/musician/tracks/${trackId}/`,
-                { starting_price: price },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            )
+            await updateTrackMutation.mutateAsync({
+                starting_price: price
+            })
 
-            // Invalidate and refetch tracks list
-            queryClient.invalidateQueries({ queryKey: ["tracks"] })
-
-            // Navigate to next step
-            if (onNext) {
-                onNext()
-            } else {
-                router.push(`/user/musician/upload/publish?trackId=${trackId}`)
-            }
+            router.push(`/user/musician/upload/publish?trackId=${trackId}`)
         } catch (err) {
             console.error("Error updating track price:", err)
             setError("Failed to update track price. Please try again.")
@@ -79,11 +58,7 @@ export default function PricingPage({
     }
 
     const handleBack = () => {
-        if (onBack) {
-            onBack()
-        } else {
-            router.push("/user/musician/upload")
-        }
+        router.push("/user/musician/upload")
     }
 
     return (
@@ -302,16 +277,16 @@ export default function PricingPage({
                         variant="outline"
                         className="border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
                         onClick={handleBack}
-                        disabled={isUpdating}
+                        disabled={updateTrackMutation.isPending}
                     >
                         Back
                     </Button>
                     <Button
                         className="bg-[#00ccff] text-white hover:bg-[#00ccff]/80"
                         onClick={handlePriceUpdate}
-                        disabled={isUpdating}
+                        disabled={updateTrackMutation.isPending}
                     >
-                        {isUpdating ? "Updating..." : "Next Step"}
+                        {updateTrackMutation.isPending ? "Updating..." : "Next Step"}
                     </Button>
                 </div>
             </main>
@@ -323,4 +298,3 @@ export default function PricingPage({
         </div>
     )
 }
-

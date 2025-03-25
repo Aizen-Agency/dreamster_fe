@@ -29,10 +29,8 @@ export default function PerksPage() {
     const trackId = params.trackId as string
     const [error, setError] = useState<string | null>(null)
 
-    // Fetch track details
     const { data: trackData, isLoading: isTrackLoading, isError: isTrackError } = useGetTrack(trackId)
 
-    // Get perks management hooks
     const {
         perks: apiPerks,
         isLoading: isPerksLoading,
@@ -44,7 +42,6 @@ export default function PerksPage() {
         isPending
     } = usePerksManagement(trackId)
 
-    // Default perks with UI configuration
     const [perks, setPerks] = useState<Perk[]>([
         {
             id: "exclusive-track",
@@ -78,10 +75,8 @@ export default function PerksPage() {
         },
     ])
 
-    // Custom perks (added by user)
     const [customPerks, setCustomPerks] = useState<Perk[]>([])
 
-    // Sync API perks with local state when data is loaded
     useEffect(() => {
         if (apiPerks) {
             // Map API perks to our UI perks
