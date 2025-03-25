@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useAuthStore } from "@/store/authStore"
 import { useUpdateTrack } from "@/hooks/useTrackManagement"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"
 
 export default function PricingPage() {
     const [initialPrice, setInitialPrice] = useState("10.00")

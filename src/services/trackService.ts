@@ -2,7 +2,7 @@ import axios from "axios";
 import { Track, TrackListResponse, StreamResponse, TrackListParams } from "@/types/track";
 import { useAuthStore } from "@/store/authStore";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 // Get auth headers
 const getAuthHeaders = () => {
