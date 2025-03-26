@@ -65,19 +65,37 @@ export default function MusicPlayer() {
         }
     }, [streamData, setStreamUrl])
 
-    // Toggle play/pause
+    // Toggle play/pause with better error handling
     const togglePlayPause = () => {
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause()
-            } else {
-                audioRef.current.play().catch(err => {
-                    console.error("Playback failed:", err)
-                })
+        if (!audioRef.current) return;
+
+        if (isPlaying) {
+            audioRef.current.pause();
+            // Don't reset currentTime here
+            setIsPlaying(false);
+        } else {
+            // Check if we have a stream URL before attempting to play
+            if (!streamData?.stream_url) {
+                console.error("No stream URL available");
+                return;
             }
-            setIsPlaying(!isPlaying)
+
+            // Ensure audio has a source
+            if (!audioRef.current.src) {
+                audioRef.current.src = streamData.stream_url;
+                audioRef.current.load();
+            }
+
+            // If we're resuming from a position, don't reset it
+            // Only attempt to play
+            audioRef.current.play().catch(err => {
+                console.error("Playback failed:", err);
+                setIsPlaying(false);
+            });
+
+            setIsPlaying(true);
         }
-    }
+    };
 
     // Format time for display (mm:ss)
     const formatTime = (time: number) => {
@@ -145,14 +163,13 @@ export default function MusicPlayer() {
         const updateProgress = () => setCurrentTime(audio.currentTime)
         const handleDurationChange = () => {
             if (audio.duration && !isNaN(audio.duration)) {
-                // Always use the audio element's duration directly
                 setDuration(audio.duration)
                 console.log("Duration set from audio:", audio.duration)
             }
         }
         const handleEnded = () => {
-            setIsPlaying(false)
-            setCurrentTime(0)
+            setIsPlaying(false);
+            setCurrentTime(0); // This is fine for track end, but shouldn't happen on pause
         }
         const handleWaiting = () => setIsBuffering(true)
         const handlePlaying = () => {
@@ -174,7 +191,6 @@ export default function MusicPlayer() {
         }
         const handleCanPlayThrough = () => {
             setIsAudioReady(true)
-            // Force duration update from the audio element
             if (audio.duration && !isNaN(audio.duration)) {
                 setDuration(audio.duration)
                 console.log("Duration set from canplaythrough:", audio.duration)
@@ -200,7 +216,7 @@ export default function MusicPlayer() {
             audio.removeEventListener("progress", handleProgress)
             audio.removeEventListener("canplaythrough", handleCanPlayThrough)
         }
-    }, [setDuration, setIsPlaying, setCurrentTime])
+    }, [setCurrentTime, setDuration, setIsPlaying, setIsBuffering, setIsAudioReady, setLoadingProgress])
 
     // Set audio source when stream URL changes
     useEffect(() => {
@@ -247,7 +263,7 @@ export default function MusicPlayer() {
                 audioRef.current?.removeEventListener("canplaythrough", handleCanPlayThrough)
             }
         }
-    }, [streamData, isPlaying, setIsPlaying, setCurrentTime, setDuration])
+    }, [streamData, setIsPlaying, setCurrentTime, setDuration, isPlaying])
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -265,6 +281,54 @@ export default function MusicPlayer() {
             audio.removeEventListener("error", handleError);
         };
     }, [setIsPlaying]);
+
+    // Handle play/pause state changes
+    useEffect(() => {
+        if (!audioRef.current) return;
+
+        if (isPlaying) {
+            // Don't modify currentTime here, just play from current position
+            audioRef.current.play().catch(err => {
+                console.error("Playback failed:", err);
+                setIsPlaying(false);
+            });
+        } else {
+            // Just pause, don't reset position
+            audioRef.current.pause();
+        }
+
+        console.log("Play/pause effect. isPlaying:", isPlaying, "Current time:", audioRef.current.currentTime);
+    }, [isPlaying, setIsPlaying]);
+
+    // Add this effect to directly update the progress
+    useEffect(() => {
+        if (!audioRef.current) return;
+
+        // This should update the UI with the current time, even when paused
+        const updateCurrentTime = () => {
+            if (audioRef.current) {
+                setCurrentTime(audioRef.current.currentTime);
+            }
+        };
+
+        // Initial update
+        updateCurrentTime();
+
+        const updateInterval = setInterval(updateCurrentTime, 100);
+
+        return () => clearInterval(updateInterval);
+    }, [setCurrentTime]);
+
+    useEffect(() => {
+        console.log("Audio state:", {
+            isPlaying,
+            isBuffering,
+            isAudioReady,
+            streamUrl: streamData?.stream_url,
+            currentTrack: currentTrack?.title,
+            duration
+        });
+    }, [isPlaying, isBuffering, isAudioReady, streamData, currentTrack, duration]);
 
     if (isLoadingTrack || isLoadingStream) {
         return (
@@ -284,6 +348,7 @@ export default function MusicPlayer() {
 
     // Calculate progress percentage
     const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
+    console.log(progressPercentage)
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
