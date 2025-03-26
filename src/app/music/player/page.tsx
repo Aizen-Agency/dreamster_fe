@@ -256,6 +256,7 @@ export default function MusicPlayer() {
         const handleError = (e: ErrorEvent) => {
             console.error("Audio playback error:", e);
             setIsPlaying(false);
+            setIsBuffering(false);
         };
 
         audio.addEventListener("error", handleError);

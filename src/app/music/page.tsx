@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import {
     Search,
     Filter,
@@ -9,6 +9,7 @@ import {
     SkipBack,
     SkipForward,
     Volume2,
+    VolumeX,
     Heart,
     Plus,
     Music,
@@ -30,13 +31,22 @@ export default function BrowseMusic() {
     const [searchQuery, setSearchQuery] = useState("")
     const [activeGenre, setActiveGenre] = useState("all")
     const [sortOption, setSortOption] = useState<'newest' | 'popular' | 'created_at'>('newest')
+    const audioRef = useRef<HTMLAudioElement>(null)
+    const [volume, setVolume] = useState(0.7)
 
     // Get player state from store
     const {
         currentTrack,
         isPlaying,
         setCurrentTrack,
-        setIsPlaying
+        setIsPlaying,
+        currentTime,
+        setCurrentTime,
+        duration,
+        setDuration,
+        streamUrl,
+        playNext,
+        playPrevious
     } = usePlayerStore()
 
     // Fetch tracks with our hook
@@ -63,6 +73,83 @@ export default function BrowseMusic() {
             router.push(`/music/player?id=${track.id}`)
         }
     }
+
+    // Setup audio element and event listeners
+    useEffect(() => {
+        const audio = audioRef.current
+        if (!audio) return
+
+        // Update time display
+        const updateTime = () => {
+            setCurrentTime(audio.currentTime)
+        }
+
+        // Set duration when metadata is loaded
+        const handleLoadedMetadata = () => {
+            setDuration(audio.duration)
+        }
+
+        // Handle playback ended
+        const handleEnded = () => {
+            setIsPlaying(false)
+            setCurrentTime(0)
+            // Optionally play next track
+            // playNext()
+        }
+
+        // Add event listeners
+        audio.addEventListener('timeupdate', updateTime)
+        audio.addEventListener('loadedmetadata', handleLoadedMetadata)
+        audio.addEventListener('ended', handleEnded)
+
+        // Set volume
+        audio.volume = volume
+
+        return () => {
+            // Clean up event listeners
+            audio.removeEventListener('timeupdate', updateTime)
+            audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
+            audio.removeEventListener('ended', handleEnded)
+        }
+    }, [setCurrentTime, setDuration, setIsPlaying, volume])
+
+    // Handle play/pause
+    useEffect(() => {
+        if (!audioRef.current || !streamUrl) return
+
+        if (isPlaying) {
+            audioRef.current.src = streamUrl
+            audioRef.current.play().catch(err => {
+                console.error("Playback failed:", err)
+                setIsPlaying(false)
+            })
+        } else if (audioRef.current) {
+            audioRef.current.pause()
+        }
+    }, [isPlaying, streamUrl, setIsPlaying])
+
+    // Handle volume change
+    const handleVolumeChange = (newVolume: number) => {
+        setVolume(newVolume)
+        if (audioRef.current) {
+            audioRef.current.volume = newVolume
+        }
+    }
+
+    // Toggle play/pause
+    const togglePlayPause = () => {
+        setIsPlaying(!isPlaying)
+    }
+
+    // Format time for display (mm:ss)
+    const formatTime = (time: number) => {
+        const minutes = Math.floor(time / 60)
+        const seconds = Math.floor(time % 60)
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
+    }
+
+    // Calculate progress percentage
+    const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
 
     // Filter tracks based on search query
     const filteredTracks = useMemo(() => {
@@ -100,8 +187,11 @@ export default function BrowseMusic() {
             {/* Sun/horizon glow */}
             <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-fuchsia-600 to-transparent opacity-20" />
 
+            {/* Hidden audio element */}
+            <audio ref={audioRef} />
+
             {/* Main content */}
-            <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-8">
+            <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-8 pb-24">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                     <div>
@@ -135,8 +225,8 @@ export default function BrowseMusic() {
                                 key={genre.id}
                                 onClick={() => setActiveGenre(genre.id)}
                                 className={`px-4 py-2 rounded-full flex items-center gap-2 transition-all ${activeGenre === genre.id
-                                        ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)]"
-                                        : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300 hover:border-fuchsia-400"
+                                    ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)]"
+                                    : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300 hover:border-fuchsia-400"
                                     }`}
                             >
                                 <genre.icon className="h-4 w-4" />
@@ -153,8 +243,8 @@ export default function BrowseMusic() {
                         <button
                             onClick={() => setSortOption('newest')}
                             className={`${sortOption === 'newest'
-                                    ? 'text-fuchsia-400 font-medium'
-                                    : 'text-cyan-300/70 hover:text-cyan-300'
+                                ? 'text-fuchsia-400 font-medium'
+                                : 'text-cyan-300/70 hover:text-cyan-300'
                                 }`}
                         >
                             Newest
@@ -162,8 +252,8 @@ export default function BrowseMusic() {
                         <button
                             onClick={() => setSortOption('popular')}
                             className={`${sortOption === 'popular'
-                                    ? 'text-fuchsia-400 font-medium'
-                                    : 'text-cyan-300/70 hover:text-cyan-300'
+                                ? 'text-fuchsia-400 font-medium'
+                                : 'text-cyan-300/70 hover:text-cyan-300'
                                 }`}
                         >
                             Most Popular
@@ -211,7 +301,11 @@ export default function BrowseMusic() {
                                                 onClick={() => handlePlayTrack(track)}
                                                 className="p-4 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_15px_rgba(232,121,249,0.7)] transform scale-0 group-hover:scale-100 transition-transform"
                                             >
-                                                <Play className="h-6 w-6" />
+                                                {currentTrack?.id === track.id && isPlaying ? (
+                                                    <Pause className="h-6 w-6" />
+                                                ) : (
+                                                    <Play className="h-6 w-6" />
+                                                )}
                                             </button>
                                         </div>
                                     </div>
@@ -223,7 +317,11 @@ export default function BrowseMusic() {
                                                 onClick={() => handlePlayTrack(track)}
                                                 className="p-2 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)]"
                                             >
-                                                <Play className="h-4 w-4" />
+                                                {currentTrack?.id === track.id && isPlaying ? (
+                                                    <Pause className="h-4 w-4" />
+                                                ) : (
+                                                    <Play className="h-4 w-4" />
+                                                )}
                                             </button>
                                             <div className="flex gap-2">
                                                 <button
@@ -251,8 +349,8 @@ export default function BrowseMusic() {
                                     <button
                                         key={i}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center ${tracksData.current_page === i + 1
-                                                ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
-                                                : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300"
+                                            ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
+                                            : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300"
                                             }`}
                                     >
                                         {i + 1}
@@ -262,7 +360,197 @@ export default function BrowseMusic() {
                         </div>
                     )}
                 </div>
+
+                {/* New Releases Section */}
+                <div className="mb-24">
+                    <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.3)] border border-fuchsia-500/30 p-6 backdrop-blur-sm">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+                                NEW RELEASES
+                            </h2>
+                            <div className="flex items-center gap-4">
+                                <select
+                                    className="bg-indigo-950/50 border border-cyan-500/30 rounded-md py-1 px-3 text-cyan-300 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                                    onChange={(e) => setSortOption(e.target.value as 'newest' | 'popular' | 'created_at')}
+                                    value={sortOption}
+                                >
+                                    <option value="newest">Newest</option>
+                                    <option value="popular">Most Popular</option>
+                                    <option value="created_at">Recently Added</option>
+                                </select>
+                                <button className="text-cyan-300 text-sm flex items-center hover:text-cyan-100 transition-colors">
+                                    View All <ChevronRight className="h-4 w-4 ml-1" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {isLoading ? (
+                            <div className="flex justify-center items-center h-64">
+                                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-fuchsia-500"></div>
+                            </div>
+                        ) : error ? (
+                            <div className="text-center text-red-400 py-8">
+                                Failed to load tracks. Please try again.
+                            </div>
+                        ) : filteredTracks.length === 0 ? (
+                            <div className="text-center text-cyan-300 py-8">
+                                No tracks found. Try a different search or genre.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                {filteredTracks.map((track) => (
+                                    <div key={track.id} className="group relative rounded-lg overflow-hidden aspect-square">
+                                        <Image
+                                            src={track.artwork_url || "/placeholder.svg"}
+                                            alt={track.title}
+                                            width={200}
+                                            height={200}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-indigo-950 via-indigo-950/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                            <h3 className="font-medium text-fuchsia-400 truncate">{track.title}</h3>
+                                            <p className="text-sm text-cyan-300 truncate">{track.artist.name}</p>
+                                            <div className="flex justify-between items-center mt-2">
+                                                <button
+                                                    className="p-2 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)]"
+                                                    onClick={() => handlePlayTrack(track)}
+                                                >
+                                                    {currentTrack?.id === track.id && isPlaying ? (
+                                                        <Pause className="h-4 w-4" />
+                                                    ) : (
+                                                        <Play className="h-4 w-4" />
+                                                    )}
+                                                </button>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        className="p-2 rounded-full bg-indigo-900/70 text-cyan-300 hover:text-cyan-100"
+                                                        onClick={() => track.likes ? unlikeTrack(track.id) : likeTrack(track.id)}
+                                                    >
+                                                        <Heart className="h-4 w-4" fill={track.likes ? "currentColor" : "none"} />
+                                                    </button>
+                                                    <button className="p-2 rounded-full bg-indigo-900/70 text-cyan-300 hover:text-cyan-100">
+                                                        <Plus className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
+
+            {/* Music Player Footer - Only visible when a track is playing */}
+            {currentTrack && (
+                <div className="fixed bottom-0 left-0 right-0 z-20">
+                    <div className="bg-gradient-to-r from-gray-900 to-indigo-950 border-t border-fuchsia-500/30 shadow-[0_-5px_15px_rgba(255,44,201,0.3)] backdrop-blur-sm p-3">
+                        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-4">
+                            {/* Track Info */}
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <div className="h-12 w-12 rounded bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)]">
+                                    <Image
+                                        src={currentTrack.artwork_url || "/placeholder.svg"}
+                                        alt={currentTrack.title}
+                                        width={60}
+                                        height={60}
+                                        className="h-full w-full rounded object-cover"
+                                    />
+                                </div>
+                                <div>
+                                    <h3 className="font-medium text-fuchsia-400">{currentTrack.title}</h3>
+                                    <p className="text-sm text-cyan-300">{currentTrack.artist.name}</p>
+                                </div>
+                                <button
+                                    className="ml-2 text-cyan-300 hover:text-cyan-100 transition-colors"
+                                    onClick={() => currentTrack.likes ? unlikeTrack(currentTrack.id) : likeTrack(currentTrack.id)}
+                                >
+                                    <Heart className="h-5 w-5" fill={currentTrack.likes ? "currentColor" : "none"} />
+                                </button>
+                            </div>
+
+                            {/* Player Controls */}
+                            <div className="flex flex-col items-center flex-1 w-full sm:w-auto">
+                                <div className="flex items-center gap-4 mb-1">
+                                    <button
+                                        className="text-cyan-300 hover:text-cyan-100 transition-colors"
+                                        onClick={playPrevious}
+                                    >
+                                        <SkipBack className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                        onClick={togglePlayPause}
+                                        className="p-3 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all"
+                                    >
+                                        {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                                    </button>
+                                    <button
+                                        className="text-cyan-300 hover:text-cyan-100 transition-colors"
+                                        onClick={playNext}
+                                    >
+                                        <SkipForward className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-3 w-full max-w-xl">
+                                    <span className="text-xs text-cyan-300 min-w-[40px] text-right">
+                                        {formatTime(currentTime)}
+                                    </span>
+                                    <div className="h-1.5 bg-indigo-900/50 rounded-full flex-1 overflow-hidden cursor-pointer"
+                                        onClick={(e) => {
+                                            if (!audioRef.current || !duration) return;
+                                            const progressBar = e.currentTarget;
+                                            const rect = progressBar.getBoundingClientRect();
+                                            const clickPosition = (e.clientX - rect.left) / rect.width;
+                                            const seekTime = clickPosition * duration;
+                                            audioRef.current.currentTime = seekTime;
+                                            setCurrentTime(seekTime);
+                                        }}
+                                    >
+                                        <div
+                                            className="h-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-full"
+                                            style={{ width: `${progressPercentage}%` }}
+                                        ></div>
+                                    </div>
+                                    <span className="text-xs text-cyan-300 min-w-[40px]">
+                                        {formatTime(duration || 0)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Volume Control */}
+                            <div className="flex items-center gap-2 w-full sm:w-auto max-w-[150px]">
+                                <button
+                                    className="text-cyan-300 hover:text-cyan-100 transition-colors"
+                                    onClick={() => handleVolumeChange(volume === 0 ? 0.7 : 0)}
+                                >
+                                    {volume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                                </button>
+                                <div
+                                    className="h-1.5 bg-indigo-900/50 rounded-full flex-1 overflow-hidden cursor-pointer"
+                                    onClick={(e) => {
+                                        const volumeBar = e.currentTarget;
+                                        const rect = volumeBar.getBoundingClientRect();
+                                        const clickPosition = (e.clientX - rect.left) / rect.width;
+                                        handleVolumeChange(Math.max(0, Math.min(1, clickPosition)));
+                                    }}
+                                >
+                                    <div
+                                        className="h-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-full"
+                                        style={{ width: `${volume * 100}%` }}
+                                    ></div>
+                                </div>
+                                <button
+                                    className="text-cyan-300 hover:text-cyan-100 transition-colors"
+                                    onClick={() => router.push(`/music/player?id=${currentTrack.id}`)}
+                                >
+                                    <MoreHorizontal className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
