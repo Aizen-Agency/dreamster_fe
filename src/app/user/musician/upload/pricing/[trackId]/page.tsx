@@ -5,24 +5,31 @@ import { Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { useAuthStore } from "@/store/authStore"
 import { useGetTrack, useUpdateTrack } from "@/hooks/useTrackManagement"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"
 
 export default function PricingPage() {
     const [initialPrice, setInitialPrice] = useState("10.00")
+    const [isUpdating, setIsUpdating] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
-    const trackId = params.trackId as string
+    const queryClient = useQueryClient()
 
-    // Get the return URL from search params if available
-    const returnUrl = searchParams.get('returnUrl')
+    const trackIdFromParams = params.trackId as string
+    const trackIdFromQuery = searchParams.get('trackId')
+
+    // Use trackId from params or query params
+    const trackId = trackIdFromParams || trackIdFromQuery
 
     // Fetch track details
-    const { data: trackData, isLoading, isError } = useGetTrack(trackId)
+    const { data: trackData, isLoading, isError } = useGetTrack(trackId || '')
 
-    // Get update track mutation
-    const updateTrackMutation = useUpdateTrack(trackId)
+    const updateTrackMutation = useUpdateTrack(trackId || '')
 
     // Set initial price from track data if available
     useEffect(() => {
@@ -33,28 +40,32 @@ export default function PricingPage() {
 
     const handlePriceUpdate = async () => {
         if (!trackId) {
-            setError("No track ID found. Please go back and upload a track first.")
+            setError("No track found to update. Please go back and upload a track first.")
             return
         }
 
+        setIsUpdating(true)
         setError(null)
-        const price = parseFloat(initialPrice)
-
-        if (isNaN(price) || price <= 0) {
-            setError("Please enter a valid price greater than 0")
-            return
-        }
 
         try {
+            const price = parseFloat(initialPrice)
+
+            if (isNaN(price) || price <= 0) {
+                setError("Please enter a valid price greater than 0")
+                setIsUpdating(false)
+                return
+            }
+
             await updateTrackMutation.mutateAsync({
                 starting_price: price
             })
 
-            // Navigate to next step
-            router.push(returnUrl || `/user/musician/upload/perks/${trackId}`)
+            router.push(`/user/musician/upload/perks/${trackId}`)
         } catch (err) {
             console.error("Error updating track price:", err)
             setError("Failed to update track price. Please try again.")
+        } finally {
+            setIsUpdating(false)
         }
     }
 
@@ -62,38 +73,13 @@ export default function PricingPage() {
         router.push("/user/musician/upload")
     }
 
-    // Show loading state while fetching track data
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 flex items-center justify-center">
-                <div className="text-white">Loading track data...</div>
-            </div>
-        )
-    }
-
-    // Show error state if track data fetch fails
-    if (isError) {
-        return (
-            <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 flex items-center justify-center">
-                <div className="text-white bg-red-900/50 border border-red-500 p-4 rounded-md">
-                    Error loading track data. Please try again or go back to upload a new track.
-                    <div className="mt-4">
-                        <Button onClick={() => router.push("/user/musician/upload")}>
-                            Back to Upload
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 p-4 md:p-8 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 relative overflow-hidden">
             {/* Background grid - lowered z-index */}
             <div
                 className="fixed inset-0 opacity-20 z-0"
                 style={{
-                    backgroundImage: `linear-gradient(#ff2cc9 1px, transparent 1px), linear-gradient(90deg, #ff2cc9 1px, transparent 1px)`,
+                    backgroundImage: `linear-gradient(#ff2cc9 1px, transparent 1px), linear-gradient( #ff2cc9 1px, transparent 1px)`,
                     backgroundSize: "40px 40px",
                     backgroundPosition: "-1px -1px",
                     perspective: "500px",
@@ -103,40 +89,40 @@ export default function PricingPage() {
             />
 
             {/* Header - increased z-index */}
-            <header className="w-full py-3 px-6 flex justify-between items-center relative z-10">
+            <header className="bg-[#2a0052] w-full py-3 px-8 flex justify-between items-center relative z-10">
                 <div className="flex items-center gap-2">
-                    <Music className="h-6 w-6 text-[#ff66cc]" />
-                    <span className="text-[#ff66cc] font-bold text-xl">Dreamster</span>
+                    <Music className="h-6 w-6 text-[#00ccff]" />
+                    <span className="audiowide-regular bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-transparent bg-clip-text font-bold text-xl">Dreamster</span>
                 </div>
                 <Button
                     variant="outline"
-                    className="bg-transparent border-[#00ccff] text-[#00ccff] hover:bg-[#00ccff]/10 rounded-full"
+                    className="border-[#00ccff] text-[#00ccff] rounded-full hover:bg-[#00ccff]/10"
                 >
-                    Create Music
+                    Connect Wallet
                 </Button>
             </header>
 
             {/* Main Content - increased z-index */}
-            <main className="flex-1 container mx-auto py-8 px-4 relative z-10">
+            <main className="flex-1 w-[60%] container mx-auto py-8 px-4 relative z-10">
                 {/* Steps */}
-                <div className="flex justify-center mb-8 gap-16">
+                <div className="flex w-[100%] justify-around items-center mb-8">
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#2a0052] border-2 border-[#6700af] flex items-center justify-center text-white mb-2">
                             1
                         </div>
-                        <span className="text-white">Upload</span>
+                        <span className="text-white font-semibold">Upload</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] border-2 border-[#ff33bb] flex items-center justify-center text-white mb-2">
                             2
                         </div>
-                        <span className="text-white">Supply & Pricing</span>
+                        <span className="text-[#ff33bb] font-bold">Supply & Pricing</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#2a0052] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#2a0052] border-2 border-[#6700af] flex items-center justify-center text-white mb-2">
                             3
                         </div>
-                        <span className="text-white">Publish</span>
+                        <span className="text-white font-semibold">Publish</span>
                     </div>
                 </div>
 
@@ -146,23 +132,37 @@ export default function PricingPage() {
                     </div>
                 )}
 
+                {/* Loading state */}
+                {isLoading && (
+                    <div className="text-center py-4 text-white">
+                        Loading track data...
+                    </div>
+                )}
+
+                {/* Error state */}
+                {isError && (
+                    <div className="mb-6 p-4 bg-red-900/50 border border-red-500 text-white rounded-md">
+                        Error loading track data. Please try again or go back to upload a new track.
+                    </div>
+                )}
+
                 {/* Title */}
                 <div className="text-center mb-8">
-                    <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-2xl md:text-3xl font-light mb-2">Set Your Music NFT Pricing</h1>
+                    <h1 className="audiowide-regular bg-gradient-to-r from-[#00ccff] to-[#ff33bb] text-transparent bg-clip-text text-2xl md:text-3xl font-light mb-2">Set Your Music NFT Pricing</h1>
                     <p className="text-gray-300">Configure the initial price for your NFT</p>
                 </div>
 
                 {/* Pricing Configuration and Preview */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Pricing Configuration */}
-                    <div className="bg-[#2a0052] border-2 border-[#ff66cc] p-6 flex flex-col relative z-20">
+                    <div className="bg-[#2a0052] border-2 border-[#6700af] rounded-lg p-6 flex flex-col relative z-20">
                         <h2 className="text-[#00ccff] text-xl mb-4">Pricing Configuration</h2>
                         <p className="text-gray-300 text-sm mb-6">
                             Set the initial price for your NFT. Pricing will follow a custom bonding curve scale.
                         </p>
 
                         <div className="mb-6">
-                            <label htmlFor="initial-price" className="block text-[#ff66cc] mb-2">
+                            <label htmlFor="initial-price" className="font-semibold block text-[#ff66cc] mb-2">
                                 Initial Price (USD)
                             </label>
                             <Input
@@ -177,11 +177,11 @@ export default function PricingPage() {
                     </div>
 
                     {/* Pricing Preview */}
-                    <div className="bg-[#2a0052] border-2 border-[#00ccff] p-6 relative z-20">
-                        <h2 className="text-[#00ccff] text-xl mb-4">Pricing Preview</h2>
+                    <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-6 relative z-20">
+                        <h2 className="audiowide-regular text-[#00ccff] text-xl mb-4">Pricing Preview</h2>
 
                         {/* Track Preview */}
-                        <div className="bg-[#3a0062] rounded-lg p-4 mb-6 flex flex-col items-center">
+                        <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-4 mb-6 flex flex-col items-center">
                             <div className="w-16 h-16 bg-[#4a0072] rounded-lg flex items-center justify-center mb-4">
                                 {trackData?.artwork_url ? (
                                     <img
@@ -219,49 +219,46 @@ export default function PricingPage() {
                                     </svg>
                                 )}
                             </div>
-                            <h3 className="text-[#00ccff] text-lg mb-1">{trackData?.title || "Your Awesome Track"}</h3>
-                            <p className="text-gray-400 text-xs">
-                                {trackData?.created_at
-                                    ? new Date(trackData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-                                    : "September 2025"
-                                }
+                            <h3 className="audiowide-regular text-[#ff66cc] text-lg mb-1">
+                                {trackData?.title || "Your Awesome Track"}
+                            </h3>
+                            <p className="text-gray-400 text-sm font-semibold">
+                                {trackData?.genre || ""} - {new Date(trackData?.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) ?? "September 2025"}
                             </p>
-                        </div>
-
-                        {/* Dynamic Pricing */}
-                        <div className="bg-[#3a0062] rounded-lg p-4 mb-6">
-                            <h3 className="text-[#00ccff] text-lg mb-2">Dynamic Pricing</h3>
-                            <p className="text-gray-300 text-sm mb-2">Bonding Curve Based Dynamic NFT Pricing</p>
-                            <p className="text-white font-bold">Starting at ${initialPrice} USD</p>
+                            <div className="mt-8 flex flex-col items-center justify-center border-2 border-[#6700af] bg-[#1a0033] rounded-lg p-4 mb-6">
+                                <h3 className="text-[#00ccff] text-lg mb-2">Dynamic Pricing</h3>
+                                <p className="text-gray-300 text-sm mb-2">Bonding Curve Based Dynamic NFT Pricing</p>
+                                <p className="text-[#ff66cc] font-bold">Starting at ${initialPrice} USD</p>
+                            </div>
                         </div>
 
                         {/* Pricing Strategy Tips */}
-                        <div className="mb-6">
-                            <h3 className="text-[#00ccff] text-lg flex items-center gap-2 mb-3">
+                        <div className="mb-6 bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-4">
+                            <h3 className="audiowide-regular text-[#ff66cc] text-lg flex items-center gap-2 mb-3">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="10" stroke="#00ccff" strokeWidth="2" />
-                                    <path d="M12 7V12" stroke="#00ccff" strokeWidth="2" strokeLinecap="round" />
-                                    <circle cx="12" cy="16" r="1" fill="#00ccff" />
+                                    <circle cx="12" cy="12" r="10" stroke="#ff66cc" strokeWidth="2" />
+                                    <path d="M12 7V12" stroke="#ff66cc" strokeWidth="2" strokeLinecap="round" />
+                                    <circle cx="12" cy="16" r="1" fill="#ff66cc" />
                                 </svg>
                                 Pricing Strategy Tips
                             </h3>
                             <ul className="text-gray-300 text-sm space-y-2 list-none">
                                 <li className="flex items-start gap-2">
-                                    <span className="text-[#00ccff]">•</span>
+                                    <span className="text-[#ff66cc]">•</span>
                                     <span>
                                         Setting a lower initial price can attract more early buyers, potentially leading to faster price
                                         growth.
                                     </span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-[#00ccff]">•</span>
+                                    <span className="text-[#ff66cc]">•</span>
                                     <span>
                                         Consider your audience and the perceived value but avoid setting too high an initial price that
                                         could deter initial adoption.
                                     </span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-[#00ccff]">•</span>
+                                    <span className="text-[#ff66cc]">•</span>
                                     <span>
                                         The bonding curve ensures that the price will increase as more collectors purchase your NFT,
                                         rewarding early adopters.
@@ -271,8 +268,8 @@ export default function PricingPage() {
                         </div>
 
                         {/* Bonding Curve Visualization */}
-                        <div>
-                            <h3 className="text-[#00ccff] text-lg mb-3">Bonding Curve Visualization</h3>
+                        <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-4">
+                            <h3 className="audiowide-regular text-[#ff66cc] text-lg mb-3">Bonding Curve Visualization</h3>
                             <div className="bg-[#3a0062] rounded-lg p-4 h-[150px] relative">
                                 {/* Y-axis label */}
                                 <div className="absolute left-2 top-0 bottom-0 flex flex-col justify-between text-xs text-gray-400">
@@ -302,7 +299,7 @@ export default function PricingPage() {
                                     <span>Supply</span>
                                 </div>
                             </div>
-                            <p className="text-gray-400 text-xs mt-2">
+                            <p className="text-gray-400 text-center text-xs mt-2">
                                 This graph shows how the price of your NFT will increase as more collectors purchase. The price will
                                 increase as the supply decreases.
                             </p>
@@ -311,14 +308,14 @@ export default function PricingPage() {
                 </div>
 
                 {/* Navigation Buttons */}
-                <div className="flex justify-between mt-8">
+                <div className="audiowide-regular mt-8 flex justify-between">
                     <Button
                         variant="outline"
                         className="border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
                         onClick={handleBack}
                         disabled={updateTrackMutation.isPending}
                     >
-                        Back
+                        Previous Step
                     </Button>
                     <Button
                         className="bg-[#00ccff] text-white hover:bg-[#00ccff]/80"
@@ -331,9 +328,9 @@ export default function PricingPage() {
             </main>
 
             {/* Footer - increased z-index */}
-            <footer className="w-full py-3 px-6 text-center text-gray-400 text-sm relative z-10">
+            <footer className="w-full py-3 px-6 text-center text-pink-700 text-sm relative z-10">
                 © 2025 Dreamster. All rights reserved.
             </footer>
         </div>
     )
-} 
+}
