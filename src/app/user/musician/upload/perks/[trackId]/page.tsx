@@ -287,7 +287,12 @@ export default function PerksPage() {
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 flex items-center justify-center">
-                <div className="text-white">Loading data...</div>
+                <div className="text-white bg-[#1a0033] border border-[#6700af] p-6 rounded-md shadow-[0_0_15px_rgba(255,44,201,0.3)]">
+                    <div className="flex items-center space-x-3">
+                        <div className="animate-spin h-6 w-6 border-2 border-[#ff66cc] border-t-transparent rounded-full"></div>
+                        <span>Loading data...</span>
+                    </div>
+                </div>
             </div>
         )
     }
@@ -297,10 +302,14 @@ export default function PerksPage() {
     if (isError) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 flex items-center justify-center">
-                <div className="text-white bg-red-900/50 border border-red-500 p-4 rounded-md">
-                    Error loading data. Please try again or go back to upload a new track.
+                <div className="text-white bg-red-900/50 border border-red-500 p-6 rounded-md shadow-[0_0_15px_rgba(255,44,201,0.3)] max-w-md">
+                    <h3 className="text-xl font-bold audiowide-regular text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-3">Error Loading Data</h3>
+                    <p className="mb-4">Unable to load track data. Please try again or go back to upload a new track.</p>
                     <div className="mt-4">
-                        <Button onClick={() => router.push("/user/musician/upload")}>
+                        <Button
+                            onClick={() => router.push("/user/musician/upload")}
+                            className="bg-[#00ccff] text-white hover:bg-[#00ccff]/80"
+                        >
                             Back to Upload
                         </Button>
                     </div>
@@ -311,7 +320,7 @@ export default function PerksPage() {
 
     // Render the main UI
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 p-4 md:p-8 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 relative overflow-hidden">
             {/* Background grid - lowered z-index */}
             <div
                 className="fixed inset-0 opacity-20 z-0"
@@ -325,41 +334,41 @@ export default function PerksPage() {
                 }}
             />
 
-            {/* Header */}
-            <header className="w-full py-3 px-6 flex justify-between items-center relative z-10">
+            {/* Header - increased z-index */}
+            <header className="bg-[#2a0052] w-full py-3 px-8 flex justify-between items-center relative z-10">
                 <div className="flex items-center gap-2">
-                    <Music className="h-6 w-6 text-[#ff66cc]" />
-                    <span className="text-[#ff66cc] font-bold text-xl">Dreamster</span>
+                    <Music className="h-6 w-6 text-[#00ccff]" />
+                    <span className="audiowide-regular bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-transparent bg-clip-text font-bold text-xl">Dreamster</span>
                 </div>
                 <Button
                     variant="outline"
-                    className="bg-transparent border-[#00ccff] text-[#00ccff] hover:bg-[#00ccff]/10 rounded-full"
+                    className="border-[#00ccff] text-[#00ccff] rounded-full hover:bg-[#00ccff]/10"
                 >
-                    Create Music
+                    Connect Wallet
                 </Button>
             </header>
 
-            {/* Main Content */}
-            <main className="flex-1 container mx-auto py-8 px-4 relative z-10">
+            {/* Main Content - increased z-index */}
+            <main className="w-[60%] container mx-auto px-4 py-8 relative z-10">
                 {/* Steps */}
-                <div className="flex justify-center mb-8 gap-16">
+                <div className="flex w-[100%] justify-around items-center mb-8">
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#2a0052] border-2 border-[#6700af] flex items-center justify-center text-white mb-2">
                             1
                         </div>
-                        <span className="text-white">Upload</span>
+                        <span className="text-white font-semibold">Upload</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#2a0052] border-2 border-[#6700af] flex items-center justify-center text-white mb-2">
                             2
                         </div>
-                        <span className="text-white">Pricing</span>
+                        <span className="text-white font-semibold">Pricing</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] border-2 border-[#ff33bb] flex items-center justify-center text-white mb-2">
                             3
                         </div>
-                        <span className="text-white">Perks</span>
+                        <span className="text-[#ff33bb] font-bold">Perks</span>
                     </div>
                 </div>
 
@@ -371,23 +380,23 @@ export default function PerksPage() {
 
                 {/* Title */}
                 <div className="text-center mb-8">
-                    <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-2xl md:text-3xl font-light mb-2">Add Exclusive Perks</h1>
+                    <h1 className="audiowide-regular text-transparent bg-clip-text bg-gradient-to-r  from-[#ff66cc] to-[#00ccff] text-2xl md:text-3xl font-bold mb-2">Add Exclusive Perks</h1>
                     <p className="text-gray-300">Offer special benefits to your NFT collectors to increase value</p>
                 </div>
 
                 {/* Perks Configuration and Preview */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Collector Perks */}
-                    <div className="bg-[#2a0052] border-2 border-[#ff66cc] p-6 relative z-20">
+                    <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-6 relative z-20">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-[#00ccff] text-xl">Collector Perks</h2>
+                            <h2 className="audiowide-regular bg-gradient-to-r from-[#00ccff] to-[#ff66cc] text-transparent bg-clip-text text-xl font-semibold">Collector Perks</h2>
                             <Info className="h-5 w-5 text-[#00ccff]" />
                         </div>
 
                         {/* Predefined Perks */}
                         {perks.map(perk => (
-                            <div key={perk.id} className="mb-6 border border-[#3a0062] rounded-lg overflow-hidden">
-                                <div className="flex justify-between items-center p-4 bg-[#1a0033]">
+                            <div key={perk.id} className="mb-6 border border-[#6700af] rounded-lg overflow-hidden bg-[#2a0052]/40">
+                                <div className="flex justify-between items-center p-4 bg-[#2a0052]/60">
                                     <div className="flex items-center gap-2">
                                         {perk.icon}
                                         <span className="text-white">{perk.type}</span>
@@ -408,14 +417,14 @@ export default function PerksPage() {
                                         <Input
                                             value={perk.title}
                                             onChange={(e) => updatePerkTitle(perk.id, e.target.value)}
-                                            className="bg-[#1a0033] border-[#3a0062] text-white mb-3"
+                                            className="bg-[#1a0033] border-[#3a0062] text-white mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder={`${perk.type} Title`}
                                             disabled={isPending}
                                         />
                                         <Textarea
                                             value={perk.description}
                                             onChange={(e) => updatePerkDescription(perk.id, e.target.value)}
-                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20"
+                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder={`Describe your ${perk.type.toLowerCase()}`}
                                             disabled={isPending}
                                         />
@@ -426,8 +435,8 @@ export default function PerksPage() {
 
                         {/* Custom Perks */}
                         {customPerks.map(perk => (
-                            <div key={perk.id} className="mb-6 border border-[#3a0062] rounded-lg overflow-hidden">
-                                <div className="flex justify-between items-center p-4 bg-[#1a0033]">
+                            <div key={perk.id} className="mb-6 border border-[#6700af] rounded-lg overflow-hidden bg-[#2a0052]/40">
+                                <div className="flex justify-between items-center p-4 bg-[#2a0052]/60">
                                     <div className="flex items-center gap-2">
                                         {perk.icon}
                                         <span className="text-white">{perk.type}</span>
@@ -451,14 +460,14 @@ export default function PerksPage() {
                                         <Input
                                             value={perk.title}
                                             onChange={(e) => updatePerkTitle(perk.id, e.target.value)}
-                                            className="bg-[#1a0033] border-[#3a0062] text-white mb-3"
+                                            className="bg-[#1a0033] border-[#3a0062] text-white mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder="Custom Perk Title"
                                             disabled={isPending}
                                         />
                                         <Textarea
                                             value={perk.description}
                                             onChange={(e) => updatePerkDescription(perk.id, e.target.value)}
-                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20"
+                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder="Describe your custom perk"
                                             disabled={isPending}
                                         />
@@ -469,7 +478,7 @@ export default function PerksPage() {
 
                         {/* Add Another Perk Button */}
                         <Button
-                            className="w-full bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-white hover:opacity-90 mb-6"
+                            className="w-full bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-white hover:bg-[#ff66cc]/80 font-bold py-3 rounded-md mb-6"
                             onClick={addCustomPerk}
                             disabled={isPending}
                         >
@@ -479,7 +488,7 @@ export default function PerksPage() {
 
                         {/* Tier-Based Access */}
                         <div className="mb-6">
-                            <h3 className="text-[#00ccff] text-lg mb-4">Tier-Based Access</h3>
+                            <h3 className="audiowide-regular text-[#ff66cc] text-lg font-semibold mb-4">Tier-Based Access</h3>
 
                             <div className="space-y-4">
                                 <div className="flex items-start gap-3">
@@ -525,12 +534,12 @@ export default function PerksPage() {
                     </div>
 
                     {/* Perks Preview */}
-                    <div className="bg-[#2a0052] border-2 border-[#00ccff] p-6 relative z-20">
-                        <h2 className="text-[#00ccff] text-xl mb-6">Perks Preview</h2>
+                    <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-6 relative z-20">
+                        <h2 className="audiowide-regular text-[#00ccff] text-xl font-semibold mb-4">Perks Preview</h2>
 
                         {/* Track Preview */}
-                        <div className="bg-[#3a0062] rounded-lg p-6 mb-6">
-                            <div className="w-full aspect-square bg-[#4a0072] rounded-lg flex items-center justify-center mb-4">
+                        <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-4 mb-6 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-[#4a0072] rounded-lg flex items-center justify-center mb-4">
                                 {trackData?.artwork_url ? (
                                     <img
                                         src={trackData.artwork_url}
@@ -567,7 +576,7 @@ export default function PerksPage() {
                                     </svg>
                                 )}
                             </div>
-                            <h3 className="text-[#ff66cc] text-xl text-center mb-1">{trackData?.title || "Your Awesome Track"}</h3>
+                            <h3 className="text-[#ff66cc] text-xl text-center mb-1 font-semibold">{trackData?.title || "Your Awesome Track"}</h3>
                             <p className="text-gray-400 text-sm text-center">
                                 {trackData?.genre || "Synthwave"} • {trackData?.created_at
                                     ? new Date(trackData.created_at).getFullYear()
@@ -577,14 +586,14 @@ export default function PerksPage() {
 
                         {/* Exclusive Perks */}
                         <div className="mb-6">
-                            <h3 className="text-[#00ccff] text-lg mb-4">Exclusive Perks</h3>
+                            <h3 className="audiowide-regular text-[#00ccff] text-lg font-semibold mb-4">Exclusive Perks</h3>
 
                             {enabledPerks.length === 0 ? (
                                 <p className="text-gray-400 text-sm italic">No perks selected yet</p>
                             ) : (
                                 <div className="space-y-4">
                                     {enabledPerks.map((perk) => (
-                                        <div key={perk.id} className="bg-[#3a0062] rounded-lg p-4 flex items-start gap-3">
+                                        <div key={perk.id} className="bg-[#2a0052]/40 rounded-lg p-4 flex items-start gap-3 border border-[#6700af]">
                                             <div className="mt-1">{perk.icon}</div>
                                             <div>
                                                 <p className="text-[#00ccff] text-sm font-medium">{perk.title}</p>
@@ -597,8 +606,8 @@ export default function PerksPage() {
                         </div>
 
                         {/* Why Perks Matter */}
-                        <div className="bg-[#3a0062] rounded-lg p-4">
-                            <h3 className="text-[#ff66cc] text-lg flex items-center gap-2 mb-4">
+                        <div className="bg-[#2a0052]/40 rounded-md border border-[#6700af] p-4">
+                            <h3 className="text-[#ff66cc] text-lg flex items-center gap-2 mb-4 font-semibold audiowide-regular">
                                 <Info className="h-4 w-4" />
                                 Why Perks Matter
                             </h3>
@@ -627,27 +636,27 @@ export default function PerksPage() {
                 </div>
 
                 {/* Navigation Buttons */}
-                <div className="flex justify-between mt-8">
+                <div className="audiowide-regular mt-8 flex justify-between">
                     <Button
                         variant="outline"
                         className="border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
                         onClick={handleBack}
                         disabled={isPending}
                     >
-                        Back to Pricing
+                        Previous Step
                     </Button>
                     <Button
                         className="bg-[#00ccff] text-white hover:bg-[#00ccff]/80"
                         onClick={handleFinalize}
                         disabled={isPending}
                     >
-                        {isPending ? "Finalizing..." : "Finalize & Mint"}
+                        {isPending ? "Finalizing..." : "Next Step"}
                     </Button>
                 </div>
             </main>
 
-            {/* Footer */}
-            <footer className="w-full py-3 px-6 text-center text-gray-400 text-sm relative z-10">
+            {/* Footer - increased z-index */}
+            <footer className="w-full py-3 px-6 text-center text-pink-700 text-sm relative z-10">
                 © 2025 Dreamster. All rights reserved.
             </footer>
         </div>
