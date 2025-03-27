@@ -47,12 +47,12 @@ export default function UploadPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 p-4 md:p-8 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 relative overflow-hidden">
             {/* Background grid - lowered z-index */}
             <div
                 className="fixed inset-0 opacity-20 z-0"
                 style={{
-                    backgroundImage: `linear-gradient(#ff2cc9 1px, transparent 1px), linear-gradient(90deg, #ff2cc9 1px, transparent 1px)`,
+                    backgroundImage: `linear-gradient(#ff2cc9 1px, transparent 1px), linear-gradient( #ff2cc9 1px, transparent 1px)`,
                     backgroundSize: "40px 40px",
                     backgroundPosition: "-1px -1px",
                     perspective: "500px",
@@ -61,40 +61,42 @@ export default function UploadPage() {
                 }}
             />
             {/* Header - increased z-index */}
-            <header className="w-full py-3 px-6 flex justify-between items-center relative z-10">
+            <header className="bg-[#2a0052] w-full py-3 px-8 flex justify-between items-center relative z-10">
                 <div className="flex items-center gap-2">
-                    <Music className="h-6 w-6 text-[#ff66cc]" />
-                    <span className="text-[#ff66cc] font-bold text-xl">Dreamster</span>
+                    <Music className="h-6 w-6 text-[#00ccff]" />
+                    <span className="audiowide-regular bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-transparent bg-clip-text font-bold text-xl">Dreamster</span>
                 </div>
                 <Button
+                    type="button"
                     variant="outline"
-                    className="bg-transparent border-[#00ccff] text-[#00ccff] hover:bg-[#00ccff]/10 rounded-full"
+                    className="border-[#00ccff] text-[#00ccff] rounded-full hover:bg-[#00ccff]/10"
+                    onClick={() => router.push('/wallet/connect')}
                 >
-                    Create Music
+                    Connect Wallet
                 </Button>
             </header>
 
             {/* Main Content - increased z-index */}
-            <main className="flex-1 container mx-auto py-8 px-4 relative z-10">
+            <main className="flex-1 w-[60%] container mx-auto py-8 px-4 relative z-10">
                 {/* Steps */}
-                <div className="flex justify-center mb-8 gap-16">
+                <div className="flex w-[100%] justify-around items-center mb-8">
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#ff66cc] border-2 border-[#ff33bb] flex items-center justify-center text-white mb-2">
                             1
                         </div>
-                        <span className="text-white">Upload</span>
+                        <span className="text-[#ff33bb] font-bold">Upload</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#2a0052] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#2a0052] border-2 border-[#6700af] flex items-center justify-center text-white mb-2">
                             2
                         </div>
-                        <span className="text-white">Pricing</span>
+                        <span className="text-white font-semibold">Pricing</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-[#2a0052] flex items-center justify-center text-white mb-2">
+                        <div className="w-10 h-10 rounded-full bg-[#2a0052] border-2 border-[#6700af] flex items-center justify-center text-white mb-2">
                             3
                         </div>
-                        <span className="text-white">Publish</span>
+                        <span className="text-white font-semibold">Publish</span>
                     </div>
                 </div>
 
@@ -108,7 +110,7 @@ export default function UploadPage() {
                     <div className="flex flex-col md:flex-row gap-6 items-stretch justify-center h-full">
                         {/* Audio Upload */}
                         <div
-                            className="bg-[#2a0052] border-2 border-[#ff66cc] p-6 flex flex-col items-center justify-center min-h-[400px] w-full md:w-1/2 flex-1 relative z-20"
+                            className="bg-[#2a0052] border-2 border-[#6700af] rounded-lg p-6 flex flex-col items-center justify-center min-h-[400px] w-full md:w-1/2 flex-1 relative z-20"
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, "audio")}
                         >
@@ -123,13 +125,13 @@ export default function UploadPage() {
                                     />
                                 </svg>
                             </div>
-                            <h2 className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-xl mb-4 text-center font-light">Upload Your Dream Track</h2>
+                            <h2 className="audiowide-regular text-transparent bg-clip-text bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-2xl mb-4 text-center font-light">Upload Your Dream Track</h2>
                             <p className="text-white text-center mb-2">Drag and drop your audio or video file here</p>
                             <p className="text-gray-400 text-xs mb-6 text-center">
                                 Supported formats: MP3, WAV, AAC, MP4, MOV, AVI, etc.
                             </p>
                             <label htmlFor="audio-upload">
-                                <div className="bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-white px-4 py-2 rounded cursor-pointer hover:opacity-80 transition">
+                                <div className="audiowide-regular bg-gradient-to-r from-[#ff66cc] to-[#00ccff] text-white px-4 py-2 rounded cursor-pointer hover:opacity-80 transition">
                                     Choose File
                                 </div>
                                 <input
@@ -144,7 +146,7 @@ export default function UploadPage() {
                         </div>
 
                         {/* Form Fields - increased z-index */}
-                        <div className="bg-[#2a0052] border-2 border-[#ff66cc] p-6 flex flex-col w-full md:w-1/2 flex-1 relative z-20">
+                        <div className="bg-[#2a0052] border-2 border-[#6700af] rounded-lg p-6 flex flex-col w-full md:w-1/2 flex-1 relative z-20">
                             <div className="mb-4">
                                 <label htmlFor="title" className="block text-[#ff66cc] mb-2">
                                     Title
@@ -153,7 +155,7 @@ export default function UploadPage() {
                                     id="title"
                                     type="text"
                                     placeholder="Enter title"
-                                    className="w-full bg-[#1a0033] border border-[#3a0062] rounded-md py-2 px-3 text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                    className="w-full bg-[#1a0033] border border-[#6700af] rounded-md py-2 px-3 text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     required
@@ -166,7 +168,7 @@ export default function UploadPage() {
                                 </label>
                                 <select
                                     id="genre"
-                                    className="w-full bg-[#1a0033] border border-[#3a0062] rounded-md py-2 px-3 text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                    className="audiowide-regular w-full bg-[#1a0033] border border-[#6700af] rounded-md py-2 px-3 text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                     value={genre}
                                     onChange={(e) => setGenre(e.target.value)}
                                 >
@@ -187,7 +189,7 @@ export default function UploadPage() {
                                 <textarea
                                     id="description"
                                     placeholder="Enter description"
-                                    className="w-full bg-[#1a0033] border border-[#3a0062] rounded-md py-2 px-3 text-white placeholder:text-gray-400 min-h-[100px] focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                    className="w-full bg-[#1a0033] border-2 border-[#6700af] rounded-md py-2 px-3 text-white placeholder:text-gray-400 min-h-[100px] focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
@@ -196,7 +198,7 @@ export default function UploadPage() {
                             <div className="mb-4">
                                 <label className="block text-[#ff66cc] mb-2">Cover Art</label>
                                 <div
-                                    className="border-2 border-dashed border-[#00ccff] rounded-lg p-6 flex flex-col items-center justify-center"
+                                    className="border-2 border-[#6700af] rounded-lg p-6 flex flex-col items-center justify-center"
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, "cover")}
                                 >
@@ -215,7 +217,7 @@ export default function UploadPage() {
                                     <p className="text-gray-400 text-xs mb-4 text-center">Supported formats: JPG, PNG, GIF</p>
 
                                     <label htmlFor="cover-upload">
-                                        <div className="bg-[#00ccff] text-white px-3 py-1 rounded text-sm cursor-pointer hover:bg-[#00ccff]/80 transition">
+                                        <div className="audiowide-regular bg-white border-[#00ccff] text-[#00ccff] hover:bg-[#00ccff]/10 px-3 py-1 rounded text-sm cursor-pointer transition">
                                             Choose Image
                                         </div>
                                         <input
@@ -238,13 +240,13 @@ export default function UploadPage() {
                                     id="tags"
                                     type="text"
                                     placeholder="Enter tags (comma-separated)"
-                                    className="w-full bg-[#1a0033] border border-[#3a0062] rounded-md py-2 px-3 text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                    className="w-full bg-[#1a0033] border-2 border-[#6700af] rounded-md py-2 px-3 text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                     value={tags}
                                     onChange={(e) => setTags(e.target.value)}
                                 />
                             </div>
 
-                            <div className="mt-auto flex justify-end gap-4">
+                            <div className="audiowide-regular mt-auto flex justify-end gap-4">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -267,7 +269,7 @@ export default function UploadPage() {
             </main>
 
             {/* Footer - increased z-index */}
-            <footer className="w-full py-3 px-6 text-center text-gray-400 text-sm relative z-10">
+            <footer className="w-full py-3 px-6 text-center text-pink-700 text-sm relative z-10">
                 © 2025 Dreamster. All rights reserved.
             </footer>
         </div>
