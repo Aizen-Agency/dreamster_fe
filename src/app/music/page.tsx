@@ -263,7 +263,7 @@ export default function BrowseMusic() {
 
                 {/* Tracks Grid */}
                 <div className="mb-16">
-                    <div className="flex justify-between items-center mb-6">
+                    {/* <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
                             {activeGenre === 'all' ? 'ALL TRACKS' : genres.find(g => g.id === activeGenre)?.name.toUpperCase()}
                         </h2>
@@ -339,7 +339,7 @@ export default function BrowseMusic() {
                                 </div>
                             ))}
                         </div>
-                    )}
+                    )} */}
 
                     {/* Pagination */}
                     {tracksData && tracksData.pages > 1 && (

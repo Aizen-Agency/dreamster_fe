@@ -7,17 +7,21 @@ import Link from 'next/link';
 import { useLogout } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { useAuthStore } from '@/store/authStore';
 
 interface ProfileMenuProps {
-    profileImage?: string;
     showIcon?: boolean;
 }
 
-export default function ProfileMenu({ profileImage, showIcon = true }: ProfileMenuProps) {
+export default function ProfileMenu({ showIcon = true }: ProfileMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const logoutMutation = useLogout();
     const router = useRouter();
+
+    // Get user data from auth store
+    const { user } = useAuthStore();
+    const profileImage = user?.avatar;
 
     // Get user role from cookies
     const role = Cookies.get('role') || 'user';

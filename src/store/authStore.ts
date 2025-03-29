@@ -18,7 +18,7 @@ interface AuthState {
     token: string | null;
 
     // Actions
-    login: (username: string, isSubaccount: boolean, token?: string, role?: string, id?: string, email?: string) => void;
+    login: (username: string, isSubaccount: boolean, token?: string, role?: string, id?: string, email?: string, avatar?: string) => void;
     logout: () => void;
     updateUser: (userData: Partial<User>) => void;
 }
@@ -30,62 +30,25 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             token: null,
 
-            login: (username, isSubaccount, token, role, id, email) => {
-                Cookies.set("isLoggedIn", "true", {
-                    secure: true,
-                    sameSite: 'strict',
-                    expires: 7
-                });
-
-                Cookies.set("username", username, {
-                    secure: true,
-                    sameSite: 'strict',
-                    expires: 7
-                });
-
-                Cookies.set("isSubaccount", isSubaccount.toString(), {
-                    secure: true,
-                    sameSite: 'strict',
-                    expires: 7
-                });
-
-                if (role) {
-                    Cookies.set("role", role, {
-                        secure: true,
-                        sameSite: 'strict',
-                        expires: 7
-                    });
-                }
-
-                if (id) {
-                    Cookies.set("id", id, {
-                        secure: true,
-                        sameSite: 'strict',
-                        expires: 7
-                    });
-                }
-
-                if (email) {
-                    Cookies.set("email", email, {
-                        secure: true,
-                        sameSite: 'strict',
-                        expires: 7
-                    });
-                }
-
-                if (token) {
-                    Cookies.set("token", token, {
-                        secure: true,
-                        sameSite: 'strict',
-                        expires: 7
-                    });
-                }
-
+            login: (username, isSubaccount, token, role, id, email, avatar) => {
                 set({
                     isLoggedIn: true,
-                    user: { username, isSubaccount, role, id, email },
-                    token: token || null
+                    user: {
+                        username,
+                        isSubaccount,
+                        role,
+                        id,
+                        email,
+                        avatar
+                    },
+                    token
                 });
+
+                // Set cookies
+                Cookies.set('isLoggedIn', 'true', { secure: true, sameSite: 'strict', expires: 7 });
+                Cookies.set('username', username, { secure: true, sameSite: 'strict', expires: 7 });
+                if (role) Cookies.set('role', role, { secure: true, sameSite: 'strict', expires: 7 });
+                if (token) Cookies.set('token', token, { secure: true, sameSite: 'strict', expires: 7 });
             },
 
             logout: () => {

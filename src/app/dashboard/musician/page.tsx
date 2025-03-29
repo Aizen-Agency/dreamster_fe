@@ -28,6 +28,7 @@ export default function ArtistDashboard() {
     const router = useRouter()
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
+    const { isLoggedIn, user } = useAuthStore()
 
     // Get user ID from auth store
     const userId = useAuthStore(state => state.user?.id)
@@ -96,7 +97,7 @@ export default function ArtistDashboard() {
                         <div className="h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-fuchsia-500 p-0.5 shadow-[0_0_15px_rgba(255,44,201,0.5)]">
                             <div className="h-full w-full rounded-full overflow-hidden">
                                 <Image
-                                    src="/placeholder.svg?height=60&width=60"
+                                    src={user?.avatar || "/placeholder.svg?height=60&width=60"}
                                     alt="Artist avatar"
                                     width={60}
                                     height={60}
@@ -119,7 +120,6 @@ export default function ArtistDashboard() {
                             <Settings className="h-5 w-5" />
                         </button>
                         <ProfileMenu
-                            profileImage="/placeholder.svg?height=40&width=40"
                             showIcon={true}
                         />
                     </div>
@@ -327,8 +327,8 @@ export default function ArtistDashboard() {
                                     onClick={handlePreviousPage}
                                     disabled={currentPage === 1}
                                     className={`px-3 py-1.5 rounded text-sm font-medium ${currentPage === 1
-                                            ? "bg-indigo-950/30 border border-cyan-500/10 text-cyan-300/50"
-                                            : "bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors"
+                                        ? "bg-indigo-950/30 border border-cyan-500/10 text-cyan-300/50"
+                                        : "bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors"
                                         }`}
                                 >
                                     Previous
@@ -337,8 +337,8 @@ export default function ArtistDashboard() {
                                     onClick={handleNextPage}
                                     disabled={!artistTracksData || currentPage >= artistTracksData.pages}
                                     className={`px-3 py-1.5 rounded text-sm font-medium ${!artistTracksData || currentPage >= artistTracksData.pages
-                                            ? "bg-indigo-950/30 border border-fuchsia-500/10 text-fuchsia-400/50"
-                                            : "bg-indigo-950/50 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-indigo-900/50 transition-colors"
+                                        ? "bg-indigo-950/30 border border-fuchsia-500/10 text-fuchsia-400/50"
+                                        : "bg-indigo-950/50 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-indigo-900/50 transition-colors"
                                         }`}
                                 >
                                     Next

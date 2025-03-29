@@ -1,13 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import { User, Key, Phone, Mail, Save, ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { User, Key, Phone, Mail, Save, ArrowLeft, Eye, EyeOff, Check, Shield, Upload, Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useUpdateProfile, useUserProfile } from "@/hooks/useProfile"
+import { Label } from "@/components/ui/label"
+import { useUpdateProfile, useUserProfile, useUploadProfilePicture } from "@/hooks/useProfile"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/authStore"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 export default function ProfilePage() {
     const router = useRouter()
@@ -17,13 +19,15 @@ export default function ProfilePage() {
     const [showPassword, setShowPassword] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
-    const { data: userProfile } = useUserProfile()
+    const [isHoveringAvatar, setIsHoveringAvatar] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
+    const { data: userProfile } = useUserProfile()
     const { isLoggedIn, user } = useAuthStore()
     const updateProfileMutation = useUpdateProfile()
+    const uploadProfilePictureMutation = useUploadProfilePicture()
 
     // Profile form state
-    console.log(userProfile)
     const [profile, setProfile] = useState({
         username: userProfile?.username ?? user?.username,
         email: user?.email ?? "",
@@ -102,6 +106,38 @@ export default function ProfilePage() {
         }
     }
 
+    const handleProfilePictureClick = () => {
+        fileInputRef.current?.click()
+    }
+
+    const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+        if (!validTypes.includes(file.type)) {
+            setErrorMessage("Please select a valid image file (JPG, PNG, or GIF)")
+            return
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setErrorMessage("Image size should be less than 5MB")
+            return
+        }
+
+        setErrorMessage(null)
+        setSuccessMessage(null)
+
+        try {
+            await uploadProfilePictureMutation.mutateAsync(file)
+            setSuccessMessage("Profile picture updated successfully")
+        } catch (error: any) {
+            setErrorMessage(error.message || "Failed to upload profile picture. Please try again.")
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
             {/* Grid background */}
@@ -117,115 +153,143 @@ export default function ProfilePage() {
                 }}
             />
 
-            {/* Content */}
-            <div className="relative z-10 w-full max-w-md">
-                {/* Back button */}
-                <Button
-                    onClick={() => user?.role === 'musician' ? router.push('/dashboard/musician') : router.push('/collection')}
-                    variant="ghost"
-                    className="mb-4 text-pink-300 hover:text-pink-100 hover:bg-pink-900/20"
-                >
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-                </Button>
+            {/* Sun/horizon glow */}
+            <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-fuchsia-600 to-transparent opacity-20" />
 
-                <div className="bg-gradient-to-br from-purple-900/80 to-indigo-900/80 rounded-lg border border-pink-500/30 p-6 backdrop-blur-sm">
-                    <div className="flex items-center space-x-4 mb-6">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-cyan-400 p-[2px] shadow-[0_0_15px_rgba(236,72,153,0.5)]">
-                            <div className="w-full h-full rounded-full bg-purple-900 flex items-center justify-center">
-                                <User className="w-8 h-8 text-pink-300" />
-                            </div>
+            <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.5)] border border-fuchsia-500/30 max-w-md w-full p-6 backdrop-blur-sm relative z-10">
+                <div className="space-y-8 text-white">
+                    <button onClick={() => user?.role === 'musician' ? router.push('/dashboard/musician') : router.push('/collection')}
+                        className="p-2 rounded-full bg-indigo-950/70 border border-cyan-500/30 text-cyan-400 hover:bg-indigo-900/70 transition-colors">
+                        <ArrowLeft className="h-5 w-5" />
+                    </button>
+                    <div className="text-center">
+                        <div
+                            className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-fuchsia-500 rounded-full mx-auto flex items-center justify-center mb-4 relative cursor-pointer overflow-hidden"
+                            onMouseEnter={() => setIsHoveringAvatar(true)}
+                            onMouseLeave={() => setIsHoveringAvatar(false)}
+                            onClick={handleProfilePictureClick}
+                        >
+                            {user?.avatar ? (
+                                <Avatar className="w-full h-full">
+                                    <AvatarImage src={user.avatar} alt={user.username} className="object-cover" />
+                                    <AvatarFallback className="bg-indigo-950">
+                                        <User className="h-10 w-10 text-white" />
+                                    </AvatarFallback>
+                                </Avatar>
+                            ) : (
+                                <User className="h-10 w-10 text-white" />
+                            )}
+
+                            {/* Overlay on hover */}
+                            {isHoveringAvatar && (
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                    <Camera className="h-8 w-8 text-white" />
+                                </div>
+                            )}
+
+                            {/* Hidden file input */}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/jpeg,image/png,image/gif"
+                                onChange={handleProfilePictureChange}
+                            />
                         </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-cyan-400">
-                                PROFILE SETTINGS
-                            </h2>
-                            <p className="text-pink-300 text-sm">Update your personal information</p>
-                        </div>
+                        <h2 className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 tracking-wider">
+                            EDIT PROFILE
+                        </h2>
+                        <p className="text-fuchsia-300">Edit your personal information</p>
                     </div>
-
-                    {/* Error message display */}
                     {errorMessage && (
-                        <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-3 rounded text-sm mb-6">
+                        <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-3 rounded text-sm mb-4">
                             {errorMessage}
                         </div>
                     )}
 
                     {/* Success message display */}
                     {successMessage && (
-                        <div className="bg-green-900/30 border border-green-500/50 text-green-200 p-3 rounded text-sm mb-6">
+                        <div className="bg-green-900/30 border border-green-500/50 text-green-200 p-3 rounded text-sm mb-4">
                             {successMessage}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Profile Form */}
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label htmlFor="username" className="block text-sm text-pink-300">
+                            <Label htmlFor="username" className="text-fuchsia-300 font-semibold">
                                 DISPLAY NAME
-                            </label>
+                            </Label>
                             <div className="relative">
-                                <User className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300" />
+                                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
                                 <Input
                                     id="username"
                                     name="username"
                                     type="text"
                                     value={profile.username}
                                     onChange={handleChange}
-                                    className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 focus:border-cyan-400 focus:ring-cyan-400/50"
+                                    className="bg-indigo-950/50 border-indigo-700/50 focus:border-cyan-400 text-white placeholder:text-indigo-400 pl-10"
                                     minLength={3}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="email" className="block text-sm text-pink-300">
+                            <Label htmlFor="email" className="text-fuchsia-300 font-semibold">
                                 EMAIL ADDRESS
-                            </label>
+                            </Label>
                             <div className="relative">
-                                <Mail className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300" />
+                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
                                 <Input
                                     id="email"
                                     name="email"
                                     type="email"
                                     value={profile.email}
                                     disabled
-                                    className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 opacity-70"
+                                    className="bg-indigo-950/50 border-indigo-700/50 text-white placeholder:text-indigo-400 pl-10 opacity-70"
                                 />
                             </div>
-                            <p className="text-xs text-pink-300/70 mt-1">EMAIL CANNOT BE CHANGED</p>
+                            <p className="text-xs text-cyan-200/70">Email cannot be changed</p>
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="phone_number" className="block text-sm text-pink-300">
+                            <Label htmlFor="phone_number" className="text-fuchsia-300 font-semibold">
                                 PHONE NUMBER
-                            </label>
+                            </Label>
                             <div className="relative">
-                                <Phone className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300" />
+                                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
                                 <Input
                                     id="phone_number"
                                     name="phone_number"
                                     type="text"
                                     value={profile.phone_number}
                                     onChange={handleChange}
-                                    className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 focus:border-cyan-400 focus:ring-cyan-400/50"
+                                    className="bg-indigo-950/50 border-indigo-700/50 focus:border-cyan-400 text-white placeholder:text-indigo-400 pl-10"
                                     placeholder="+1234567890"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="password" className="block text-sm text-pink-300">
-                                PASSWORD
-                            </label>
+                            <div className="flex justify-between">
+                                <Label htmlFor="password" className="text-fuchsia-300 font-semibold">
+                                    PASSWORD
+                                </Label>
+                                <a href="/user/account/recovery" className="text-xs text-cyan-300 hover:text-cyan-200">
+                                    Forgot Password?
+                                </a>
+                            </div>
                             <div className="relative">
-                                <Key className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300" />
+                                <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
                                 <Input
                                     id="password"
                                     name="password"
                                     type={showPassword ? "text" : "password"}
                                     value={profile.password}
                                     onChange={handleChange}
-                                    className="pl-9 bg-purple-800/50 border-pink-500/50 text-pink-100 focus:border-cyan-400 focus:ring-cyan-400/50"
+                                    className="bg-indigo-950/50 border-indigo-700/50 focus:border-cyan-400 text-white placeholder:text-indigo-400 pl-10 pr-10"
                                     minLength={6}
+                                    placeholder="••••••••"
                                 />
                                 <button
                                     type="button"
@@ -233,36 +297,58 @@ export default function ProfilePage() {
                                     className="absolute right-3 top-1/2 transform -translate-y-1/2"
                                 >
                                     {showPassword ? (
-                                        <EyeOff className="h-4 w-4 text-pink-400" />
+                                        <EyeOff className="h-5 w-5 text-cyan-400" />
                                     ) : (
-                                        <Eye className="h-4 w-4 text-pink-400" />
+                                        <Eye className="h-5 w-5 text-cyan-400" />
                                     )}
                                 </button>
                             </div>
-                            <p className="text-xs text-pink-300/70 mt-1">LEAVE BLANK TO KEEP CURRENT PASSWORD</p>
+                            <p className="text-xs text-cyan-200/70">Leave blank to keep current password</p>
                         </div>
 
                         <Button
                             type="submit"
                             disabled={saving}
-                            className="w-full bg-gradient-to-r from-pink-500 to-cyan-500 hover:from-cyan-500 hover:to-pink-500 mt-6 shadow-[0_0_15px_rgba(236,72,153,0.3)]"
+                            className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white font-bold tracking-wider py-5 shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
                         >
-                            {saving ? "SAVING..." : saved ? "SAVED" : "SAVE PROFILE"}
-                            {!saving && !saved && <Save className="ml-2 h-4 w-4" />}
+                            {saving ? (
+                                <div className="flex items-center">
+                                    <svg
+                                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    SAVING...
+                                </div>
+                            ) : saved ? (
+                                <>
+                                    SAVED <Check className="ml-2 h-5 w-5" />
+                                </>
+                            ) : (
+                                <>
+                                    SAVE PROFILE <Save className="ml-2 h-5 w-5" />
+                                </>
+                            )}
                         </Button>
                     </form>
                 </div>
-
-                {/* Footer */}
-                <div className="flex justify-between items-center text-xs text-pink-300/70 px-2">
-                    <div>DREAMSTER.IO • USER PROFILE</div>
-                    <div className="flex items-center">
-                        <div className="w-2 h-2 bg-cyan-400 rounded-full mr-1 shadow-[0_0_5px_rgba(45,212,191,0.7)]"></div>
-                        <span>SECURE CONNECTION • {currentTime}</span>
-                    </div>
-                </div>
             </div>
-        </div>
+        </div >
     )
 }
 

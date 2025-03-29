@@ -49,7 +49,15 @@ export function useLogin() {
         mutationFn: (data: LoginData) => authService.login(data),
         onSuccess: (data) => {
             // Update the auth store
-            login(data.user.username, false, data.token, data.user.role, data.user.id, data.user.email);
+            login(
+                data.user.username,
+                false,
+                data.token,
+                data.user.role,
+                data.user.id,
+                data.user.email,
+                data.user.avatar
+            );
 
             // Invalidate and refetch user profile
             queryClient.invalidateQueries({ queryKey: ['userProfile'] });

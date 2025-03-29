@@ -42,4 +42,33 @@ export function useUpdateProfile() {
             return errorMessage;
         }
     });
+}
+
+export function useUploadProfilePicture() {
+    const queryClient = useQueryClient();
+    const updateUserInStore = useAuthStore((state) => state.updateUser);
+
+    return useMutation({
+        mutationFn: (file: File) => {
+            const formData = new FormData();
+            formData.append('profile_picture', file);
+            return authService.uploadProfilePicture(formData);
+        },
+
+        onSuccess: (response) => {
+            // Update profile picture URL in store
+            if (response.profile_picture_url) {
+                updateUserInStore({ avatar: response.profile_picture_url });
+            }
+
+            // Invalidate and refetch the profile data
+            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+            return { message: "Profile picture updated" };
+        },
+
+        onError: (error: any) => {
+            const errorMessage = error.response?.data?.message || 'Failed to upload profile picture. Please try again.';
+            return errorMessage;
+        }
+    });
 } 

@@ -19,6 +19,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'dreamster-tracks.s3.eu-north-1.amazonaws.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'dreamster-users.s3.eu-north-1.amazonaws.com',
+      },
     ],
   }
 }

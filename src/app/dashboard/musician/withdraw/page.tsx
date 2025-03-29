@@ -16,12 +16,14 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/store/authStore"
 
 export default function WithdrawEarnings() {
     const router = useRouter()
     const [amount, setAmount] = useState("")
     const [selectedMethod, setSelectedMethod] = useState<string>("bank")
     const [isProcessing, setIsProcessing] = useState(false)
+    const { isLoggedIn, user } = useAuthStore()
 
     const handleWithdraw = () => {
         if (!amount || Number.parseFloat(amount) <= 0) return
@@ -113,7 +115,7 @@ export default function WithdrawEarnings() {
                         <div className="h-12 w-12 rounded-full bg-gradient-to-br from-cyan-400 to-fuchsia-500 p-0.5 shadow-[0_0_15px_rgba(255,44,201,0.5)]">
                             <div className="h-full w-full rounded-full overflow-hidden">
                                 <Image
-                                    src="/placeholder.svg?height=48&width=48"
+                                    src={user?.avatar ?? "/placeholder.svg?height=48&width=48"}
                                     alt="Artist avatar"
                                     width={48}
                                     height={48}
@@ -122,8 +124,8 @@ export default function WithdrawEarnings() {
                             </div>
                         </div>
                         <div>
-                            <p className="text-fuchsia-400 font-medium">John Doe</p>
-                            <p className="text-cyan-300 text-sm opacity-80">Artist ID: #8675309</p>
+                            <p className="text-fuchsia-400 font-medium">{user?.username}</p>
+                            <p className="text-cyan-300 text-sm opacity-80">Artist ID: {user?.id}</p>
                         </div>
                     </div>
                 </div>

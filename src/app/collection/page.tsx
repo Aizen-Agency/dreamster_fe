@@ -30,14 +30,10 @@ export default function MusicCollection() {
     // Handle play button click
     const handlePlayTrack = (track: Track) => {
         if (currentTrack?.id === track.id) {
-            // Toggle play/pause if it's the current track
             setIsPlaying(!isPlaying)
         } else {
-            // Set new track and start playing
             setCurrentTrack(track)
             setIsPlaying(true)
-
-            // Navigate to player page
             router.push(`/music/player?id=${track.id}`)
         }
     }

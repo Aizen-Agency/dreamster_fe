@@ -28,6 +28,7 @@ export interface LoginResponse {
         username: string;
         email: string;
         role: string;
+        avatar: string;
     };
     token: string;
 }
@@ -108,6 +109,15 @@ export const authService = {
             email,
             reset_token,
             new_password
+        });
+        return response.data;
+    },
+
+    async uploadProfilePicture(formData: FormData): Promise<any> {
+        const response = await apiClient.post('/user/profile-picture', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
         });
         return response.data;
     }
