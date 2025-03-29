@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Share2, Download, ShoppingCart } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -49,11 +49,12 @@ export default function MusicPlayer() {
     const [isBuffering, setIsBuffering] = useState(false)
     const [isAudioReady, setIsAudioReady] = useState(false)
 
-    // Set track and stream URL when data is loaded
+    // Add a ref to track the last known position
+    const lastKnownPositionRef = useRef(0)
+
     useEffect(() => {
         if (trackData && !currentTrack) {
             setCurrentTrack(trackData)
-            // Ensure playback is paused by default
             setIsPlaying(false)
         }
     }, [trackData, currentTrack, setCurrentTrack, setIsPlaying])
@@ -65,13 +66,15 @@ export default function MusicPlayer() {
         }
     }, [streamData, setStreamUrl])
 
-    // Toggle play/pause with better error handling
-    const togglePlayPause = () => {
+    // Toggle play/pause with better error handling - wrap in useCallback
+    const togglePlayPause = useCallback(() => {
         if (!audioRef.current) return;
 
         if (isPlaying) {
             audioRef.current.pause();
-            // Don't reset currentTime here
+            // Make sure we update the current time one last time when pausing
+            setCurrentTime(audioRef.current.currentTime);
+            // Set isPlaying after updating the time to prevent re-render issues
             setIsPlaying(false);
         } else {
             // Check if we have a stream URL before attempting to play
@@ -95,26 +98,26 @@ export default function MusicPlayer() {
 
             setIsPlaying(true);
         }
-    };
+    }, [isPlaying, setIsPlaying, streamData, setCurrentTime]);
 
-    // Format time for display (mm:ss)
-    const formatTime = (time: number) => {
+    // Format time for display (mm:ss) - wrap in useCallback
+    const formatTime = useCallback((time: number) => {
         const minutes = Math.floor(time / 60)
         const seconds = Math.floor(time % 60)
         return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
-    }
+    }, []);
 
-    // Handle seeking
-    const handleSeek = (value: number[]) => {
+    // Handle seeking - wrap in useCallback
+    const handleSeek = useCallback((value: number[]) => {
         if (!audioRef.current || !duration) return
 
         const seekTime = value[0]
         audioRef.current.currentTime = seekTime
         setCurrentTime(seekTime)
-    }
+    }, [duration, setCurrentTime]);
 
-    // Handle progress bar click for seeking
-    const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Handle progress bar click for seeking - wrap in useCallback
+    const handleProgressBarClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         if (!audioRef.current || !duration) return
 
         const progressBar = e.currentTarget
@@ -124,19 +127,19 @@ export default function MusicPlayer() {
 
         audioRef.current.currentTime = seekTime
         setCurrentTime(seekTime)
-    }
+    }, [duration, setCurrentTime]);
 
-    // Handle volume change
-    const handleVolumeChange = (value: number[]) => {
+    // Handle volume change - wrap in useCallback
+    const handleVolumeChange = useCallback((value: number[]) => {
         if (!audioRef.current) return
 
         const newVolume = value[0]
         setVolume(newVolume)
         audioRef.current.volume = newVolume
-    }
+    }, []);
 
-    // Handle like/unlike
-    const handleToggleLike = () => {
+    // Handle like/unlike - wrap in useCallback
+    const handleToggleLike = useCallback(() => {
         if (!isAuthenticated) {
             // toast({
             //     title: "Authentication required",
@@ -149,27 +152,30 @@ export default function MusicPlayer() {
         if (!trackId) return
 
         toggleLike(trackId)
-    }
+    }, [isAuthenticated, trackId, toggleLike]);
 
-    // Handle purchase function
-    const handlePurchase = () => {
+    // Handle purchase function - wrap in useCallback
+    const handlePurchase = useCallback(() => {
         router.push(`/music/purchase?id=${trackId}`)
-    }
+    }, [router, trackId]);
 
     useEffect(() => {
         const audio = audioRef.current
         if (!audio) return
 
-        const updateProgress = () => setCurrentTime(audio.currentTime)
+        const updateProgress = () => {
+            if (audio.currentTime) {
+                setCurrentTime(audio.currentTime)
+            }
+        }
         const handleDurationChange = () => {
             if (audio.duration && !isNaN(audio.duration)) {
                 setDuration(audio.duration)
-                console.log("Duration set from audio:", audio.duration)
             }
         }
         const handleEnded = () => {
             setIsPlaying(false);
-            setCurrentTime(0); // This is fine for track end, but shouldn't happen on pause
+            setCurrentTime(0);
         }
         const handleWaiting = () => setIsBuffering(true)
         const handlePlaying = () => {
@@ -184,7 +190,7 @@ export default function MusicPlayer() {
             if (audio.buffered.length > 0) {
                 const bufferedEnd = audio.buffered.end(audio.buffered.length - 1)
                 const duration = audio.duration
-                if (duration > 0) {
+                if (duration > 0 || isPlaying == false) {
                     setLoadingProgress((bufferedEnd / duration) * 100)
                 }
             }
@@ -193,10 +199,10 @@ export default function MusicPlayer() {
             setIsAudioReady(true)
             if (audio.duration && !isNaN(audio.duration)) {
                 setDuration(audio.duration)
-                console.log("Duration set from canplaythrough:", audio.duration)
             }
         }
 
+        // Add all event listeners at once
         audio.addEventListener("timeupdate", updateProgress)
         audio.addEventListener("durationchange", handleDurationChange)
         audio.addEventListener("ended", handleEnded)
@@ -207,6 +213,7 @@ export default function MusicPlayer() {
         audio.addEventListener("canplaythrough", handleCanPlayThrough)
 
         return () => {
+            // Remove all event listeners at once
             audio.removeEventListener("timeupdate", updateProgress)
             audio.removeEventListener("durationchange", handleDurationChange)
             audio.removeEventListener("ended", handleEnded)
@@ -216,7 +223,7 @@ export default function MusicPlayer() {
             audio.removeEventListener("progress", handleProgress)
             audio.removeEventListener("canplaythrough", handleCanPlayThrough)
         }
-    }, [setCurrentTime, setDuration, setIsPlaying, setIsBuffering, setIsAudioReady, setLoadingProgress])
+    }, [setCurrentTime, setDuration, setIsPlaying, setLoadingProgress, isPlaying]);
 
     // Set audio source when stream URL changes
     useEffect(() => {
@@ -282,42 +289,45 @@ export default function MusicPlayer() {
         };
     }, [setIsPlaying]);
 
-    // Handle play/pause state changes
     useEffect(() => {
         if (!audioRef.current) return;
 
         if (isPlaying) {
-            // Don't modify currentTime here, just play from current position
             audioRef.current.play().catch(err => {
                 console.error("Playback failed:", err);
                 setIsPlaying(false);
             });
         } else {
-            // Just pause, don't reset position
             audioRef.current.pause();
+            // Don't update currentTime here as it can cause a race condition
         }
-
-        console.log("Play/pause effect. isPlaying:", isPlaying, "Current time:", audioRef.current.currentTime);
     }, [isPlaying, setIsPlaying]);
 
-    // Add this effect to directly update the progress
+    // Modify the continuous update effect (around line 303)
     useEffect(() => {
         if (!audioRef.current) return;
 
         // This should update the UI with the current time, even when paused
         const updateCurrentTime = () => {
             if (audioRef.current) {
-                setCurrentTime(audioRef.current.currentTime);
+                const currentAudioTime = audioRef.current.currentTime;
+
+                // Only update if playing or if the time is different from last known
+                if (isPlaying || Math.abs(currentAudioTime - lastKnownPositionRef.current) > 0.1) {
+                    setCurrentTime(currentAudioTime);
+                    lastKnownPositionRef.current = currentAudioTime;
+                }
             }
         };
 
         // Initial update
         updateCurrentTime();
 
-        const updateInterval = setInterval(updateCurrentTime, 100);
+        // Run the interval more frequently for smoother updates
+        const updateInterval = setInterval(updateCurrentTime, 50);
 
         return () => clearInterval(updateInterval);
-    }, [setCurrentTime]);
+    }, [setCurrentTime, isPlaying]);
 
     useEffect(() => {
         console.log("Audio state:", {
@@ -346,9 +356,7 @@ export default function MusicPlayer() {
         )
     }
 
-    // Calculate progress percentage
-    const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
-    console.log(progressPercentage)
+    let progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
@@ -397,18 +405,22 @@ export default function MusicPlayer() {
                             </div>
                             <div className="mb-6">
                                 <button
-                                    className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 w-[100%] text-white py-2 px-4 mb-4 rounded-full font-bold flex items-center text-sm flex justify-center items-center"
+                                    className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 w-[100%] text-white py-2 px-4 mb-4 rounded-full font-bold flex items-center text-sm justify-center transition-all duration-300 ease-in-out"
                                     onClick={togglePlayPause}
                                     disabled={isBuffering && !isAudioReady}
                                 >
-                                    {isBuffering && !isAudioReady ? (
-                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                                    ) : isPlaying ? (
-                                        <Pause size={24} />
-                                    ) : (
-                                        <Play size={24} />
-                                    )}
-                                    {isBuffering && !isAudioReady ? "Loading..." : isPlaying ? "Pause" : "Play"}
+                                    <div className="flex items-center justify-center">
+                                        {isBuffering && !isAudioReady ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                        ) : isPlaying ? (
+                                            <Pause size={24} className="transition-transform duration-300 ease-in-out" />
+                                        ) : (
+                                            <Play size={24} className="transition-transform duration-300 ease-in-out" />
+                                        )}
+                                        <span className="ml-2">
+                                            {isBuffering && !isAudioReady ? "Loading..." : isPlaying ? "Pause" : "Play"}
+                                        </span>
+                                    </div>
                                 </button>
                                 <div className="flex items-center gap-4 mb-4">
                                     <span className="text-sm text-cyan-300 min-w-[40px]">
@@ -426,7 +438,10 @@ export default function MusicPlayer() {
                                             />
                                             <div
                                                 className="absolute bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-full h-full"
-                                                style={{ width: `${progressPercentage}%` }}
+                                                style={{
+                                                    width: `${progressPercentage}%`,
+                                                    transition: isPlaying ? 'width 0.1s linear' : 'none' // Only animate when playing
+                                                }}
                                             />
                                             {isAudioReady && (
                                                 <div

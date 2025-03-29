@@ -24,6 +24,7 @@ export default function LoginScreen() {
     const searchParams = useSearchParams()
     const resetSuccess = searchParams.get("reset") === "success"
 
+    console.log("testing Vercel")
     // Redirect if already logged in
     useEffect(() => {
         const isLoggedIn = Cookies.get('isLoggedIn') === 'true';
