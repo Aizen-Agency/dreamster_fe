@@ -1,37 +1,51 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { ArrowLeft, Check, Mail, Shield, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
+import { useRequestPasswordReset, useVerifyResetCode, useResetPassword } from "@/hooks/useRecovery"
 
 export default function AccountRecovery() {
     const router = useRouter()
     const [step, setStep] = useState<number>(1)
     const [email, setEmail] = useState<string>("")
     const [code, setCode] = useState<string[]>(Array(6).fill(""))
-    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [resetToken, setResetToken] = useState<string>("")
     const [error, setError] = useState<string | null>(null)
     const [newPassword, setNewPassword] = useState<string>("")
     const [confirmPassword, setConfirmPassword] = useState<string>("")
+    const [resetSuccess, setResetSuccess] = useState<boolean>(false)
+
+    // React Query mutations
+    const requestResetMutation = useRequestPasswordReset()
+    const verifyCodeMutation = useVerifyResetCode()
+    const resetPasswordMutation = useResetPassword()
+
+    // Check if any mutation is loading
+    const isLoading = requestResetMutation.isPending ||
+        verifyCodeMutation.isPending ||
+        resetPasswordMutation.isPending
 
     const handleEmailSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
-        setIsLoading(true)
 
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false)
-            if (!email.includes("@")) {
-                setError("PLEASE ENTER A VALID EMAIL ADDRESS")
-                return
+        if (!email.includes("@")) {
+            setError("PLEASE ENTER A VALID EMAIL ADDRESS")
+            return
+        }
+
+        requestResetMutation.mutate(email, {
+            onSuccess: () => {
+                setStep(2)
+            },
+            onError: (error) => {
+                setError(error.message)
             }
-            setStep(2)
-        }, 1500)
+        })
     }
 
     const handleCodeChange = (index: number, value: string) => {
@@ -52,53 +66,71 @@ export default function AccountRecovery() {
     const handleCodeSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
-        setIsLoading(true)
 
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false)
-            if (code.join("").length !== 6) {
-                setError("PLEASE ENTER A VALID 6-DIGIT CODE")
-                return
+        const codeString = code.join("")
+        if (codeString.length !== 6) {
+            setError("PLEASE ENTER A VALID 6-DIGIT CODE")
+            return
+        }
+
+        verifyCodeMutation.mutate(
+            { email, code: codeString },
+            {
+                onSuccess: (data) => {
+                    setResetToken(data.reset_token)
+                    setStep(3)
+                },
+                onError: (error) => {
+                    setError(error.message)
+                }
             }
-            setStep(3)
-        }, 1500)
+        )
     }
 
     const handlePasswordSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
-        setIsLoading(true)
 
         // Password validation
         if (newPassword.length < 8) {
-            setIsLoading(false)
             setError("PASSWORD MUST BE AT LEAST 8 CHARACTERS")
             return
         }
 
         if (newPassword !== confirmPassword) {
-            setIsLoading(false)
             setError("PASSWORDS DO NOT MATCH")
             return
         }
 
-        // Simulate API call to reset password
-        setTimeout(() => {
-            setIsLoading(false)
-            setStep(4) // Move to success step
-        }, 1500)
+        resetPasswordMutation.mutate(
+            {
+                email,
+                reset_token: resetToken,
+                new_password: newPassword
+            },
+            {
+                onSuccess: () => {
+                    setStep(4) // Move to success step
+                    setResetSuccess(true)
+                },
+                onError: (error) => {
+                    setError(error.message)
+                }
+            }
+        )
     }
 
     const handleResendCode = () => {
         setError(null)
-        setIsLoading(true)
 
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false)
-            setError("NEW CODE SENT TO YOUR EMAIL")
-        }, 1500)
+        requestResetMutation.mutate(email, {
+            onSuccess: () => {
+                setError("NEW CODE SENT TO YOUR EMAIL")
+            },
+            onError: (error) => {
+                setError(error.message)
+            }
+        })
     }
 
     const getCurrentTime = () => {
@@ -179,7 +211,7 @@ export default function AccountRecovery() {
                                     className="w-full bg-gradient-to-r from-synthwave-cyan to-synthwave-pink text-white font-bold tracking-wider py-5 uppercase shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
                                     disabled={isLoading}
                                 >
-                                    {isLoading ? "Sending..." : "Send Recovery Code"}
+                                    {requestResetMutation.isPending ? "Sending..." : "Send Recovery Code"}
                                 </Button>
                             </div>
                         </form>
@@ -240,7 +272,7 @@ export default function AccountRecovery() {
                                         className="bg-gradient-to-r from-synthwave-cyan to-synthwave-pink text-white font-bold tracking-wider py-5 uppercase shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
                                         disabled={isLoading}
                                     >
-                                        {isLoading ? "Verifying..." : "Verify Code"}
+                                        {verifyCodeMutation.isPending ? "Verifying..." : "Verify Code"}
                                     </Button>
                                 </div>
 
@@ -313,14 +345,14 @@ export default function AccountRecovery() {
                                         className="bg-gradient-to-r from-synthwave-cyan to-synthwave-pink text-white font-bold tracking-wider py-5 uppercase shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
                                         disabled={isLoading}
                                     >
-                                        {isLoading ? "Updating..." : "Reset Password"}
+                                        {resetPasswordMutation.isPending ? "Updating..." : "Reset Password"}
                                     </Button>
                                 </div>
                             </div>
                         </form>
                     )}
 
-                    {/* Step 4: Success (previously step 3) */}
+                    {/* Step 4: Success */}
                     {step === 4 && (
                         <div className="space-y-6 flex flex-col items-center">
                             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-synthwave-cyan to-synthwave-pink p-0.5 animate-glow">
@@ -336,7 +368,7 @@ export default function AccountRecovery() {
 
                             <Button
                                 className="w-full bg-gradient-to-r from-synthwave-cyan to-synthwave-pink text-white font-bold tracking-wider py-5 uppercase shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all duration-300"
-                                onClick={() => router.push("/auth/login/email")}
+                                onClick={() => router.push("/auth/login/email?reset=success")}
                             >
                                 Return to Login
                             </Button>
@@ -353,6 +385,13 @@ export default function AccountRecovery() {
                     </div>
                 </div>
             </div>
+
+            {/* Password reset success message */}
+            {resetSuccess && (
+                <div className="bg-green-900/30 border border-green-500/50 text-green-200 p-3 rounded text-sm mb-6">
+                    Password reset successful. You can now log in with your new password.
+                </div>
+            )}
         </div>
     )
 }

@@ -22,6 +22,7 @@ import Link from "next/link"
 import ProfileMenu from "@/components/ProfileMenu"
 import { useAuthStore } from "@/store/authStore"
 import { useArtistTracks } from "@/hooks/useArtistTracks"
+import { useDeleteTrack } from "@/hooks/useTrackManagement"
 import { Track } from "@/types/track"
 
 export default function ArtistDashboard() {
@@ -42,6 +43,13 @@ export default function ArtistDashboard() {
             sort_by: 'newest'
         }
     )
+
+    // Add delete track mutation
+    const deleteTrackMutation = useDeleteTrack()
+
+    // State for confirmation dialog
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [trackToDelete, setTrackToDelete] = useState<string | null>(null)
 
     // Filter tracks based on search query
     const filteredTracks = artistTracksData?.tracks.filter(track =>
@@ -69,6 +77,39 @@ export default function ArtistDashboard() {
     // Navigate to track details page
     const handleViewTrack = (trackId: string) => {
         router.push(`/music/player?id=${trackId}`)
+    }
+
+    // Handle delete track
+    const handleDeleteTrack = (trackId: string) => {
+        // Open confirmation dialog
+        setTrackToDelete(trackId)
+        setIsDeleteDialogOpen(true)
+    }
+
+    // Confirm delete track
+    const confirmDeleteTrack = async () => {
+        if (!trackToDelete) return
+
+        try {
+            await deleteTrackMutation.mutateAsync(trackToDelete)
+
+            // Close dialog and reset state
+            setIsDeleteDialogOpen(false)
+            setTrackToDelete(null)
+
+            // Optional: Show success message
+            // toast({ title: "Track deleted successfully" })
+        } catch (error) {
+            console.error("Error deleting track:", error)
+            // Optional: Show error message
+            // toast({ title: "Failed to delete track", variant: "destructive" })
+        }
+    }
+
+    // Cancel delete
+    const cancelDeleteTrack = () => {
+        setIsDeleteDialogOpen(false)
+        setTrackToDelete(null)
     }
 
     return (
@@ -109,14 +150,14 @@ export default function ArtistDashboard() {
                             <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 tracking-wider">
                                 ARTIST DASHBOARD
                             </h1>
-                            <p className="text-cyan-300 opacity-80">Welcome back, John Doe</p>
+                            <p className="text-cyan-300 opacity-80">Welcome back, {user?.username}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => router.push('/notification')} className="p-2 rounded-full bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors">
+                        <button disabled={true} onClick={() => router.push('/notification')} className="p-2 rounded-full bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors">
                             <Bell className="h-5 w-5" />
                         </button>
-                        <button className="p-2 rounded-full bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors">
+                        <button disabled={true} className="p-2 rounded-full bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors">
                             <Settings className="h-5 w-5" />
                         </button>
                         <ProfileMenu
@@ -300,6 +341,7 @@ export default function ArtistDashboard() {
                                                             <Edit className="h-4 w-4" />
                                                         </button>
                                                         <button
+                                                            onClick={() => handleDeleteTrack(track.id)}
                                                             className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-red-400"
                                                             title="Delete Track"
                                                         >

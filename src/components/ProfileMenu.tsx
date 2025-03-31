@@ -91,14 +91,14 @@ export default function ProfileMenu({ showIcon = true }: ProfileMenuProps) {
                         >
                             Your Profile
                         </Link>
-                        <Link
+                        {/* <Link
                             href="/settings"
                             className="block px-4 py-2 text-sm text-cyan-300 hover:bg-indigo-900 transition-colors"
                             role="menuitem"
                             onClick={() => setIsOpen(false)}
                         >
                             Settings
-                        </Link>
+                        </Link> */}
                         <button
                             className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-indigo-900 transition-colors"
                             role="menuitem"

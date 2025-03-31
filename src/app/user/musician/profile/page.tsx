@@ -27,6 +27,8 @@ import { useArtistTracks } from "@/hooks/useArtistTracks"
 import { useAuthStore } from "@/store/authStore"
 import { usePlayerStore } from "@/store/playerStore"
 import { Track } from "@/types/track"
+import { useUserProfile } from "@/hooks/useProfile"
+import { useSetUserRole } from "@/hooks/useAuth"
 
 type UserRole = "musician" | "fan" | "admin"
 
@@ -47,13 +49,11 @@ export default function UserProfile() {
     const [searchQuery, setSearchQuery] = useState("")
     const [showAddAssetModal, setShowAddAssetModal] = useState(false)
     const [isPlaying, setIsPlaying] = useState<string | null>(null)
-
     // Get user ID from auth store
     const userId = useAuthStore(state => state.user?.id)
-
+    const { data: userData, isLoading: userLoading, error: userError } = useUserProfile()
     // Player state
     const { currentTrack, isPlaying: playerIsPlaying, setCurrentTrack, setIsPlaying: setPlayerIsPlaying } = usePlayerStore()
-
     // Fetch artist tracks
     const { data: artistTracksData, isLoading, error } = useArtistTracks(
         userId || '',
@@ -82,13 +82,13 @@ export default function UserProfile() {
 
     // Mock user data
     const user = {
-        id: "USR001",
-        name: "Alex Johnson",
-        email: "alex@example.com",
-        avatar: "/placeholder.svg?height=120&width=120",
-        role: "musician" as UserRole,
-        joined: "Jun 15, 2023",
-        lastActive: "2 hours ago",
+        id: userData?.id,
+        name: userData?.username,
+        email: userData?.email,
+        avatar: userData?.avatar,
+        role: userData?.role as UserRole,
+        joined: userData?.createdAt,
+        lastActive: userData?.lastActive,
         bio: "Electronic music producer and DJ based in Los Angeles. Creating immersive soundscapes and rhythmic journeys since 2015.",
         followers: 1240,
         following: 352,
@@ -259,7 +259,7 @@ export default function UserProfile() {
                                     <button onClick={() => router.push('/user/profile')} className="px-4 py-2 rounded font-medium bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all">
                                         Edit Profile
                                     </button>
-                                    <button className="px-4 py-2 rounded font-medium border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
+                                    <button disabled={true} className="px-4 py-2 rounded font-medium border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
                                         Follow
                                     </button>
                                 </div>
@@ -591,8 +591,8 @@ export default function UserProfile() {
                                     <button
                                         key={i}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center ${artistTracksData.current_page === i + 1
-                                                ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
-                                                : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300"
+                                            ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
+                                            : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300"
                                             }`}
                                     >
                                         {i + 1}
