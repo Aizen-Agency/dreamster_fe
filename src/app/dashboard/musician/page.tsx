@@ -81,7 +81,6 @@ export default function ArtistDashboard() {
 
     // Handle delete track
     const handleDeleteTrack = (trackId: string) => {
-        // Open confirmation dialog
         setTrackToDelete(trackId)
         setIsDeleteDialogOpen(true)
     }
@@ -333,13 +332,13 @@ export default function ArtistDashboard() {
                                                         >
                                                             <ExternalLink className="h-4 w-4" />
                                                         </button>
-                                                        <button
+                                                        {/* <button
                                                             onClick={() => handleEditTrack(track.id)}
                                                             className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400"
                                                             title="Edit Track"
                                                         >
                                                             <Edit className="h-4 w-4" />
-                                                        </button>
+                                                        </button> */}
                                                         <button
                                                             onClick={() => handleDeleteTrack(track.id)}
                                                             className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-red-400"

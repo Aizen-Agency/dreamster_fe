@@ -72,7 +72,7 @@ export default function UserProfile() {
     const handlePlayTrack = (track: Track) => {
         if (currentTrack?.id === track.id) {
             // Toggle play/pause if it's the current track
-            setPlayerIsPlaying(!playerIsPlaying)
+            router.push(`/music/player?id=${track.id}`)
         } else {
             // Set new track and start playing
             setCurrentTrack(track)
@@ -181,6 +181,16 @@ export default function UserProfile() {
                 return <FileMusic className="h-4 w-4" />
             case "sample":
                 return <Download className="h-4 w-4" />
+        }
+    }
+
+    function handleDownloadTrack(track: Track): void {
+        const downloadUrl = track.audio_url;
+        if (downloadUrl) {
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${track.title}.mp3`;
+            a.click();
         }
     }
 
@@ -565,7 +575,7 @@ export default function UserProfile() {
                                                             <Play className="h-5 w-5" />
                                                         )}
                                                     </button>
-                                                    <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
+                                                    <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
                                                         <Download className="h-5 w-5" />
                                                     </button>
                                                     <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">

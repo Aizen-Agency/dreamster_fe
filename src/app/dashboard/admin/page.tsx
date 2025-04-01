@@ -495,7 +495,7 @@ export default function AdminDashboard() {
                                                 <td className="py-4 px-4 text-cyan-100">{user.lastActive ?? 'Active'}</td>
                                                 <td className="py-4 px-4">
                                                     <div className="flex justify-end gap-2">
-                                                        <button
+                                                        {/* <button
                                                             className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300 hover:text-cyan-100"
                                                             title="View User"
                                                             onClick={() => handleViewUser(user.id)}
@@ -508,7 +508,7 @@ export default function AdminDashboard() {
                                                             onClick={() => handleEditUser(user.id)}
                                                         >
                                                             <Edit className="h-5 w-5" />
-                                                        </button>
+                                                        </button> */}
                                                         <button
                                                             className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-red-400 hover:text-red-300"
                                                             title="Delete User"

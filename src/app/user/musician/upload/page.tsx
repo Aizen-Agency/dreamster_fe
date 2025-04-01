@@ -174,11 +174,9 @@ export default function UploadPage() {
                                 >
                                     <option value="">Select Genre</option>
                                     <option value="electronic">Electronic</option>
-                                    <option value="hiphop">Hip Hop</option>
-                                    <option value="rock">Rock</option>
-                                    <option value="pop">Pop</option>
+                                    <option value="synthwave">Synthwave</option>
+                                    <option value="lofi">Lofi</option>
                                     <option value="ambient">Ambient</option>
-                                    <option value="jazz">Jazz</option>
                                 </select>
                             </div>
 
