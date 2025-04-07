@@ -105,7 +105,7 @@ export default function MusicCollection() {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {likedTracksData.tracks.map((track: Track) => (
+                                    {/* {likedTracksData.tracks.map((track: Track) => (
                                         <div key={track.id} className="bg-indigo-950/50 rounded-lg p-4 border border-indigo-800/30 hover:border-cyan-500/30 transition-all">
                                             <div className="flex items-center gap-4">
                                                 <div className="h-20 w-20 rounded bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)] flex-shrink-0">
@@ -148,12 +148,12 @@ export default function MusicCollection() {
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                    ))} */}
                                 </div>
                             )}
 
                             {/* Pagination */}
-                            {likedTracksData && likedTracksData.pages > 1 && (
+                            {/* {likedTracksData && likedTracksData.pages > 1 && (
                                 <div className="flex justify-center mt-8">
                                     <div className="flex space-x-2">
                                         {Array.from({ length: likedTracksData.pages }, (_, i) => (
@@ -170,7 +170,7 @@ export default function MusicCollection() {
                                         ))}
                                     </div>
                                 </div>
-                            )}
+                            )} */}
                         </div>
 
                         {/* Footer */}

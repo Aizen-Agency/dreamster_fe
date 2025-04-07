@@ -21,6 +21,8 @@ export interface Track {
     artwork_url?: string;
     audio_url?: string;
     artist: Artist;
+    approved: boolean;
+    status: string
 }
 
 export interface TrackListResponse {
@@ -34,6 +36,9 @@ export interface StreamResponse {
     stream_url: string;
     track_id: string;
     duration: number;
+    file_format: string;
+    file_size_mb: number;
+    content_type: string;
 }
 
 export interface TrackListParams {
