@@ -74,6 +74,7 @@ export default function MusicPlayer() {
             audioRef.current.pause();
             // Make sure we update the current time one last time when pausing
             setCurrentTime(audioRef.current.currentTime);
+            lastKnownPositionRef.current = audioRef.current.currentTime;
             // Set isPlaying after updating the time to prevent re-render issues
             setIsPlaying(false);
         } else {

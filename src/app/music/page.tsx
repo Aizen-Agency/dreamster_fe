@@ -460,7 +460,7 @@ export default function BrowseMusic() {
                                 </div>
                                 <div>
                                     <h3 className="font-medium text-fuchsia-400">{currentTrack.title}</h3>
-                                    <p className="text-sm text-cyan-300">{currentTrack.artist.name}</p>
+                                    <p className="text-sm text-cyan-300">{currentTrack.artist?.name}</p>
                                 </div>
                                 <button
                                     className="ml-2 text-cyan-300 hover:text-cyan-100 transition-colors"

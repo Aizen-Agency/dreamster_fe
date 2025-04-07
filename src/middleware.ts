@@ -56,7 +56,10 @@ export function middleware(request: NextRequest) {
 
     // Admin-only routes
     if (path.startsWith('/dashboard/admin') && role !== 'admin') {
-      return NextResponse.redirect(new URL(role === 'musician' ? '/dashboard/musician' : '/collection', request.url));
+      // Allow admin to access musician profiles
+      if (path.startsWith('/dashboard/admin/musician/')) {
+        return NextResponse.redirect(new URL(role === 'musician' ? '/dashboard/musician' : '/collection', request.url));
+      }
     }
 
     // Fan-only routes (if any)

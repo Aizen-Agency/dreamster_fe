@@ -35,7 +35,6 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js'
-import { CustomProgress } from "@/components/ui/custom-progress"
 
 interface User {
     id: string;
@@ -220,7 +219,7 @@ export default function AdminDashboard() {
     }
 
     const handleViewUser = (userId: string) => {
-        // router.push(`/dashboard/admin/users/${userId}`)
+        router.push(`/dashboard/admin/musician/${userId}`)
     }
 
     const handleEditUser = (userId: string) => {
@@ -463,7 +462,7 @@ export default function AdminDashboard() {
                                         </tr>
                                     ) : (
                                         users.map((user) => (
-                                            <tr key={user.id} className="border-b border-indigo-800/30 hover:bg-indigo-900/20 transition-colors">
+                                            <tr key={user.id} className="border-b border-indigo-800/30 hover:bg-indigo-900/20 transition-colors" onClick={() => handleViewUser(user.id)}>
                                                 <td className="py-4 px-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)]">

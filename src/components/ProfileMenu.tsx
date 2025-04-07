@@ -31,7 +31,7 @@ export default function ProfileMenu({ showIcon = true }: ProfileMenuProps) {
         ? '/user/musician/profile'
         : role === 'fan'
             ? '/user/profile'
-            : '/user/admin/profile';
+            : '/dashboard/admin/profile';
 
     useEffect(() => {
         // Handle clicks outside the menu to close it
