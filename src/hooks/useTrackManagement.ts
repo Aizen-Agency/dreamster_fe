@@ -11,6 +11,7 @@ export interface TrackFormData {
     genre?: string;
     tags?: string[];
     starting_price?: number;
+    exclusive?: boolean;
     audio: File;
     artwork?: File;
 }
@@ -65,6 +66,11 @@ export const useUploadTrack = () => {
 
             if (trackData.starting_price) {
                 formData.append("starting_price", trackData.starting_price.toString());
+            }
+
+            // Add exclusive field if provided
+            if (trackData.exclusive !== undefined) {
+                formData.append("exclusive", trackData.exclusive.toString());
             }
 
             // Append files

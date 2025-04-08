@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAuthStore } from "@/store/authStore"
@@ -13,6 +14,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8
 
 export default function PricingPage() {
     const [initialPrice, setInitialPrice] = useState("10.00")
+    const [isExclusive, setIsExclusive] = useState(false)
     const [isUpdating, setIsUpdating] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
@@ -31,10 +33,15 @@ export default function PricingPage() {
 
     const updateTrackMutation = useUpdateTrack(trackId || '')
 
-    // Set initial price from track data if available
+    // Set initial price and exclusive status from track data if available
     useEffect(() => {
-        if (trackData && trackData.starting_price) {
-            setInitialPrice(trackData.starting_price.toString())
+        if (trackData) {
+            if (trackData.starting_price) {
+                setInitialPrice(trackData.starting_price.toString())
+            }
+            if (trackData.exclusive !== undefined) {
+                setIsExclusive(trackData.exclusive)
+            }
         }
     }, [trackData])
 
@@ -57,7 +64,8 @@ export default function PricingPage() {
             }
 
             await updateTrackMutation.mutateAsync({
-                starting_price: price
+                starting_price: price,
+                exclusive: isExclusive
             })
 
             router.push(`/user/musician/upload/perks/${trackId}`)
@@ -174,10 +182,28 @@ export default function PricingPage() {
                             />
                             <p className="text-gray-400 text-xs mt-2">Set the starting price for your NFT</p>
                         </div>
+
+                        {/* Add exclusive toggle */}
+                        <div className="mb-6">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="exclusive-toggle" className="font-semibold block text-[#ff66cc]">
+                                    Exclusive Track
+                                </label>
+                                <Switch
+                                    id="exclusive-toggle"
+                                    checked={isExclusive}
+                                    onCheckedChange={setIsExclusive}
+                                    className="data-[state=checked]:bg-[#00ccff]"
+                                />
+                            </div>
+                            <p className="text-gray-400 text-xs mt-2">
+                                Mark this track as exclusive content available only to NFT owners
+                            </p>
+                        </div>
                     </div>
 
                     {/* Pricing Preview */}
-                    <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-6 relative z-20">
+                    <div className="bg-[#2a0052] border-2 border-[#6700af] rounded-lg p-6 flex flex-col relative z-20">
                         <h2 className="audiowide-regular text-[#00ccff] text-xl mb-4">Pricing Preview</h2>
 
                         {/* Track Preview */}
@@ -189,7 +215,7 @@ export default function PricingPage() {
                                         alt={trackData.title}
                                         className="w-full h-full object-cover rounded-lg"
                                     />
-                                ) : (
+                                ) :
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path
                                             d="M9 18V6L21 3V15"
@@ -217,23 +243,28 @@ export default function PricingPage() {
                                             strokeLinejoin="round"
                                         />
                                     </svg>
-                                )}
+                                }
                             </div>
                             <h3 className="audiowide-regular text-[#ff66cc] text-lg mb-1">
                                 {trackData?.title || "Your Awesome Track"}
                             </h3>
-                            <p className="text-gray-400 text-sm font-semibold">
+                            <p className="text-gray-400 text-sm">
                                 {trackData?.genre || ""} - {new Date(trackData?.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) ?? "September 2025"}
                             </p>
                             <div className="mt-8 flex flex-col items-center justify-center border-2 border-[#6700af] bg-[#1a0033] rounded-lg p-4 mb-6">
                                 <h3 className="text-[#00ccff] text-lg mb-2">Dynamic Pricing</h3>
                                 <p className="text-gray-300 text-sm mb-2">Bonding Curve Based Dynamic NFT Pricing</p>
                                 <p className="text-[#ff66cc] font-bold">Starting at ${initialPrice} USD</p>
+                                {isExclusive && (
+                                    <div className="mt-2 bg-[#ff66cc]/20 px-3 py-1 rounded-full">
+                                        <span className="text-[#ff66cc] text-sm font-semibold">Exclusive Content</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Pricing Strategy Tips */}
-                        <div className="mb-6 bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-4">
+                        <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-4">
                             <h3 className="audiowide-regular text-[#ff66cc] text-lg flex items-center gap-2 mb-3">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <circle cx="12" cy="12" r="10" stroke="#ff66cc" strokeWidth="2" />
@@ -264,13 +295,19 @@ export default function PricingPage() {
                                         rewarding early adopters.
                                     </span>
                                 </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-[#ff66cc]">•</span>
+                                    <span>
+                                        Marking your track as exclusive can increase its perceived value and appeal to collectors.
+                                    </span>
+                                </li>
                             </ul>
                         </div>
 
                         {/* Bonding Curve Visualization */}
                         <div className="bg-[#1a0033] border-2 border-[#6700af] rounded-lg p-4">
                             <h3 className="audiowide-regular text-[#ff66cc] text-lg mb-3">Bonding Curve Visualization</h3>
-                            <div className="bg-[#3a0062] rounded-lg p-4 h-[150px] relative">
+                            <div className="relative h-40">
                                 {/* Y-axis label */}
                                 <div className="absolute left-2 top-0 bottom-0 flex flex-col justify-between text-xs text-gray-400">
                                     <span>Price</span>

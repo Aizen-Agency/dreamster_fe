@@ -11,6 +11,7 @@ export interface Track {
     genre?: string;
     tags?: string[];
     starting_price?: number;
+    exclusive?: boolean;
     duration?: number;
     stream_count?: number;
     likes?: number;
