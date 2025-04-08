@@ -94,4 +94,18 @@ export const usePerksManagement = (trackId: string) => {
             deletePerkMutation.isPending ||
             togglePerkStatusMutation.isPending
     };
+};
+
+// Hook to upload perk files
+export const useUploadPerkFiles = (trackId: string) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (formData: FormData) => {
+            return perksService.uploadPerkFiles(trackId, formData);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['trackPerks', trackId] });
+        }
+    });
 }; 

@@ -10,8 +10,9 @@ import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter, useParams } from "next/navigation"
 import { useGetTrack } from "@/hooks/useTrackManagement"
-import { usePerksManagement } from "@/hooks/usePerksManagement"
+import { usePerksManagement, useUploadPerkFiles } from "@/hooks/usePerksManagement"
 import { Perk as APIPerk } from "@/services/perksService"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
 interface Perk {
     id: string
@@ -21,6 +22,10 @@ interface Perk {
     description: string
     icon: React.ReactNode
     apiId?: string // To link with API perks
+    perkType?: "text" | "url" | "file" | "audio"
+    fileData?: File
+    url?: string
+    isDirty?: boolean
 }
 
 export default function PerksPage() {
@@ -118,6 +123,42 @@ export default function PerksPage() {
         }
     }, [apiPerks]);
 
+    const handleFileUpload = (id: string, file: File | null) => {
+        const allPerks = [...perks, ...customPerks];
+        const perk = allPerks.find(p => p.id === id);
+
+        if (!perk) return;
+
+        // Update local state with file data
+        if (perks.find(p => p.id === id)) {
+            setPerks(perks?.map(p =>
+                p.id === id ? { ...p, fileData: file || undefined, isDirty: true } : p
+            ));
+        } else {
+            setCustomPerks(customPerks.map(p =>
+                p.id === id ? { ...p, fileData: file || undefined, isDirty: true } : p
+            ));
+        }
+    }
+
+    const updatePerkUrl = (id: string, url: string) => {
+        const allPerks = [...perks, ...customPerks];
+        const perk = allPerks.find(p => p.id === id);
+
+        if (!perk) return;
+
+        // Update local state with URL
+        if (perks.find(p => p.id === id)) {
+            setPerks(perks.map(p =>
+                p.id === id ? { ...p, url, isDirty: true } : p
+            ));
+        } else {
+            setCustomPerks(customPerks.map(p =>
+                p.id === id ? { ...p, url, isDirty: true } : p
+            ));
+        }
+    }
+
     const togglePerk = async (id: string) => {
         const allPerks = [...perks, ...customPerks];
         const perk = allPerks.find(p => p.id === id);
@@ -161,59 +202,38 @@ export default function PerksPage() {
         }
     }
 
-    const updatePerkTitle = async (id: string, title: string) => {
-        const allPerks = [...perks, ...customPerks];
-        const perk = allPerks.find(p => p.id === id);
+    // Modify your handlers to only update local state
+    const handleTitleChange = (e: any) => {
+        const newTitle = e.target.value;
+        const perkId = e.target.id;
 
-        if (!perk) return;
-
-        // Update local state first for responsive UI
-        if (perks.find(p => p.id === id)) {
-            setPerks(perks.map(p => p.id === id ? { ...p, title } : p));
+        // Only update local state, not the backend
+        if (perks.find(p => p.id === perkId)) {
+            setPerks(perks.map(p =>
+                p.id === perkId ? { ...p, title: newTitle, isDirty: true } : p
+            ));
         } else {
-            setCustomPerks(customPerks.map(p => p.id === id ? { ...p, title } : p));
+            setCustomPerks(customPerks.map(p =>
+                p.id === perkId ? { ...p, title: newTitle, isDirty: true } : p
+            ));
         }
+    };
 
-        // If perk exists in API, update it
-        if (perk.apiId) {
-            try {
-                await updatePerk({
-                    perkId: perk.apiId,
-                    title
-                });
-            } catch (err) {
-                console.error("Error updating perk title:", err);
-                setError("Failed to update perk title. Please try again.");
-            }
-        }
-    }
+    const handleDescriptionChange = (e: any) => {
+        const newDescription = e.target.value;
+        const perkId = e.target.id;
 
-    const updatePerkDescription = async (id: string, description: string) => {
-        const allPerks = [...perks, ...customPerks];
-        const perk = allPerks.find(p => p.id === id);
-
-        if (!perk) return;
-
-        // Update local state first for responsive UI
-        if (perks.find(p => p.id === id)) {
-            setPerks(perks.map(p => p.id === id ? { ...p, description } : p));
+        // Only update local state, not the backend
+        if (perks.find(p => p.id === perkId)) {
+            setPerks(perks.map(p =>
+                p.id === perkId ? { ...p, description: newDescription, isDirty: true } : p
+            ));
         } else {
-            setCustomPerks(customPerks.map(p => p.id === id ? { ...p, description } : p));
+            setCustomPerks(customPerks.map(p =>
+                p.id === perkId ? { ...p, description: newDescription, isDirty: true } : p
+            ));
         }
-
-        // If perk exists in API, update it
-        if (perk.apiId) {
-            try {
-                await updatePerk({
-                    perkId: perk.apiId,
-                    description
-                });
-            } catch (err) {
-                console.error("Error updating perk description:", err);
-                setError("Failed to update perk description. Please try again.");
-            }
-        }
-    }
+    };
 
     const addCustomPerk = () => {
         const newId = `custom-${Date.now()}`;
@@ -227,6 +247,40 @@ export default function PerksPage() {
         };
 
         setCustomPerks([...customPerks, newPerk]);
+    }
+
+    const updatePerkType = (id: string, perkType: "text" | "url" | "file" | "audio") => {
+        console.log(`Updating perk type for ${id} to ${perkType}`);
+
+        // Check if it's a predefined perk
+        const predefinedPerkIndex = perks.findIndex(p => p.id === id);
+
+        if (predefinedPerkIndex >= 0) {
+            console.log(`Found predefined perk at index ${predefinedPerkIndex}`);
+            // Update predefined perk
+            const updatedPerks = [...perks];
+            updatedPerks[predefinedPerkIndex] = {
+                ...updatedPerks[predefinedPerkIndex],
+                perkType,
+                isDirty: true
+            };
+            setPerks(updatedPerks);
+        } else {
+            // Update custom perk
+            const customPerkIndex = customPerks.findIndex(p => p.id === id);
+            console.log(`Found custom perk at index ${customPerkIndex}`);
+            if (customPerkIndex >= 0) {
+                const updatedCustomPerks = [...customPerks];
+                updatedCustomPerks[customPerkIndex] = {
+                    ...updatedCustomPerks[customPerkIndex],
+                    perkType,
+                    isDirty: true
+                };
+                setCustomPerks(updatedCustomPerks);
+            } else {
+                console.warn(`Perk with ID ${id} not found in either perks or customPerks`);
+            }
+        }
     }
 
     const removeCustomPerk = async (id: string) => {
@@ -255,6 +309,8 @@ export default function PerksPage() {
         router.push(`/user/musician/upload/pricing/${trackId}`)
     }
 
+    const uploadPerkFilesMutation = useUploadPerkFiles(trackId);
+
     const handleFinalize = async () => {
         if (!trackId) {
             setError("No track ID found. Please go back and upload a track first.")
@@ -262,16 +318,48 @@ export default function PerksPage() {
         }
 
         try {
-            // Ensure all enabled perks are saved to the API
-            for (const perk of enabledPerks) {
-                if (!perk.apiId) {
-                    // Create perk if it doesn't exist in API
-                    await createPerk({
+            // Get all enabled perks
+            const allEnabledPerks = [...perks.filter(perk => perk.enabled), ...customPerks.filter(perk => perk.enabled)];
+
+            // Create FormData for file uploads
+            const formData = new FormData();
+
+            // Process each perk
+            for (const perk of allEnabledPerks) {
+                let perkId = perk.apiId;
+
+                // Create or update perk based on whether it exists in API
+                if (!perkId) {
+                    // Create new perk
+                    const perkData = {
                         title: perk.title,
                         description: perk.description,
-                        active: true
+                        active: true,
+                        perkType: perk.perkType || "text",
+                        url: perk.url || ""
+                    };
+
+                    const newApiPerk = await createPerk(perkData);
+                    perkId = newApiPerk.id;
+                } else if (perk.isDirty) {
+                    // Update existing perk if it's been modified
+                    await updatePerk({
+                        perkId: perk.apiId,
+                        title: perk.title,
+                        description: perk.description,
+                        url: perk.url
                     });
                 }
+
+                // Handle file upload if needed
+                if (perk.fileData && perkId) {
+                    formData.append(`perk_${perkId}_file`, perk.fileData);
+                }
+            }
+
+            // If we have any files to upload, send them now
+            if (formData && Array.from(formData.entries()).length > 0) {
+                await uploadPerkFilesMutation.mutateAsync(formData);
             }
 
             // Navigate to next step
@@ -411,23 +499,204 @@ export default function PerksPage() {
                                         <ChevronDown className="h-5 w-5 text-white" />
                                     </div>
                                 </div>
-
-                                {perk.enabled && (
+                                {perk.enabled && perk.id === "stems" && (
                                     <div className="p-4">
                                         <Input
                                             value={perk.title}
-                                            onChange={(e) => updatePerkTitle(perk.id, e.target.value)}
+                                            onChange={handleTitleChange}
                                             className="bg-[#1a0033] border-[#3a0062] text-white mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder={`${perk.type} Title`}
                                             disabled={isPending}
                                         />
                                         <Textarea
                                             value={perk.description}
-                                            onChange={(e) => updatePerkDescription(perk.id, e.target.value)}
-                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                            onChange={handleDescriptionChange}
+                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder={`Describe your ${perk.type.toLowerCase()}`}
                                             disabled={isPending}
                                         />
+
+                                        {/* File Upload for Stems */}
+                                        <div className="mt-3 border-2 border-dashed border-[#3a0062] rounded-md p-4 text-center">
+                                            <label className="block text-sm text-gray-300 mb-2">
+                                                Upload Stems (MP3, WAV)
+                                            </label>
+                                            <div
+                                                className="flex flex-col items-center justify-center cursor-pointer"
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                                                        handleFileUpload(perk.id, e.dataTransfer.files[0]);
+                                                    }
+                                                }}
+                                            >
+                                                {perk.fileData ? (
+                                                    <div className="text-[#00ccff]">
+                                                        {perk.fileData.name}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-gray-400">
+                                                        Drag and drop or click to upload
+                                                    </div>
+                                                )}
+                                                <input
+                                                    type="file"
+                                                    accept=".mp3,.wav"
+                                                    className="hidden"
+                                                    id={`stems-upload-${perk.id}`}
+                                                    onChange={(e) => {
+                                                        if (e.target.files && e.target.files[0]) {
+                                                            handleFileUpload(perk.id, e.target.files[0]);
+                                                        }
+                                                    }}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="mt-2 border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
+                                                    onClick={() => document.getElementById(`stems-upload-${perk.id}`)?.click()}
+                                                >
+                                                    Select File
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {perk.enabled && perk.id === "discord" && (
+                                    <div className="p-4">
+                                        <Input
+                                            value={perk.title}
+                                            onChange={handleTitleChange}
+                                            className="bg-[#1a0033] border-[#3a0062] text-white mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                            placeholder={`${perk.type} Title`}
+                                            disabled={isPending}
+                                        />
+                                        <Textarea
+                                            value={perk.description}
+                                            onChange={handleDescriptionChange}
+                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                            placeholder={`Describe your ${perk.type.toLowerCase()}`}
+                                            disabled={isPending}
+                                        />
+
+                                        {/* Discord URL Input */}
+                                        <div className="mt-3">
+                                            <label className="block text-sm text-gray-300 mb-2">
+                                                Discord Invite URL
+                                            </label>
+                                            <Input
+                                                value={perk.url || ""}
+                                                onChange={(e) => updatePerkUrl(perk.id, e.target.value)}
+                                                className="bg-[#1a0033] border-[#3a0062] text-white focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                                placeholder="https://discord.gg/your-invite-code"
+                                                disabled={isPending}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                {perk.enabled && (
+                                    <div className="p-4">
+                                        <Input
+                                            id={perk.id}
+                                            value={perk.title}
+                                            onChange={handleTitleChange}
+                                            className="bg-[#1a0033] border-[#3a0062] text-white mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                            placeholder="Custom Perk Title"
+                                            disabled={isPending}
+                                        />
+                                        <Textarea
+                                            id={perk.id}
+                                            value={perk.description}
+                                            onChange={handleDescriptionChange}
+                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                            placeholder="Describe your custom perk"
+                                            disabled={isPending}
+                                        />
+
+                                        {/* Perk Type Selection for Custom Perks */}
+                                        <div className="mt-3">
+                                            <label className="block text-sm text-gray-300 mb-2">
+                                                Perk Type
+                                            </label>
+                                            <Select
+                                                value={perk.perkType || "text"}
+                                                onValueChange={(value) => updatePerkType(perk.id, value as "text" | "url" | "file" | "audio")}
+                                            >
+                                                <SelectTrigger className="bg-[#1a0033] border-[#3a0062] text-white">
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#1a0033] border-[#3a0062] text-white">
+                                                    <SelectItem value="text">Text Only</SelectItem>
+                                                    <SelectItem value="url">URL / Link</SelectItem>
+                                                    <SelectItem value="file">File (PDF, DOC)</SelectItem>
+                                                    <SelectItem value="audio">Audio File</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {/* Conditional Input Based on Type */}
+                                        {perk.perkType === "url" && (
+                                            <div className="mt-3">
+                                                <label className="block text-sm text-gray-300 mb-2">
+                                                    URL
+                                                </label>
+                                                <Input
+                                                    value={perk.url || ""}
+                                                    onChange={(e) => updatePerkUrl(perk.id, e.target.value)}
+                                                    className="bg-[#1a0033] border-[#3a0062] text-white focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                                    placeholder="https://example.com"
+                                                    disabled={isPending}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {(perk.perkType === "file" || perk.perkType === "audio") && (
+                                            <div className="mt-3 border-2 border-dashed border-[#3a0062] rounded-md p-4 text-center">
+                                                <label className="block text-sm text-gray-300 mb-2">
+                                                    {perk.perkType === "file" ? "Upload File (PDF, DOC)" : "Upload Audio"}
+                                                </label>
+                                                <div
+                                                    className="flex flex-col items-center justify-center cursor-pointer"
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                                                            handleFileUpload(perk.id, e.dataTransfer.files[0]);
+                                                        }
+                                                    }}
+                                                >
+                                                    {perk.fileData ? (
+                                                        <div className="text-[#00ccff]">
+                                                            {perk.fileData.name}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-400">
+                                                            Drag and drop or click to upload
+                                                        </div>
+                                                    )}
+                                                    <input
+                                                        type="file"
+                                                        accept={perk.perkType === "file" ? ".pdf,.doc,.docx" : ".mp3,.wav"}
+                                                        className="hidden"
+                                                        id={`file-upload-${perk.id}`}
+                                                        onChange={(e) => {
+                                                            if (e.target.files && e.target.files[0]) {
+                                                                handleFileUpload(perk.id, e.target.files[0]);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="mt-2 border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
+                                                        onClick={() => document.getElementById(`file-upload-${perk.id}`)?.click()}
+                                                    >
+                                                        Select File
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -458,19 +727,105 @@ export default function PerksPage() {
                                 {perk.enabled && (
                                     <div className="p-4">
                                         <Input
+                                            id={perk.id}
                                             value={perk.title}
-                                            onChange={(e) => updatePerkTitle(perk.id, e.target.value)}
+                                            onChange={handleTitleChange}
                                             className="bg-[#1a0033] border-[#3a0062] text-white mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder="Custom Perk Title"
                                             disabled={isPending}
                                         />
                                         <Textarea
+                                            id={perk.id}
                                             value={perk.description}
-                                            onChange={(e) => updatePerkDescription(perk.id, e.target.value)}
-                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                            onChange={handleDescriptionChange}
+                                            className="bg-[#1a0033] border-[#3a0062] text-white h-20 mb-3 focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
                                             placeholder="Describe your custom perk"
                                             disabled={isPending}
                                         />
+
+                                        {/* Perk Type Selection for Custom Perks */}
+                                        <div className="mt-3">
+                                            <label className="block text-sm text-gray-300 mb-2">
+                                                Perk Type
+                                            </label>
+                                            <Select
+                                                value={perk.perkType || "text"}
+                                                onValueChange={(value) => updatePerkType(perk.id, value as "text" | "url" | "file" | "audio")}
+                                            >
+                                                <SelectTrigger className="bg-[#1a0033] border-[#3a0062] text-white">
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#1a0033] border-[#3a0062] text-white">
+                                                    <SelectItem value="text">Text Only</SelectItem>
+                                                    <SelectItem value="url">URL / Link</SelectItem>
+                                                    <SelectItem value="file">File (PDF, DOC)</SelectItem>
+                                                    <SelectItem value="audio">Audio File</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {/* Conditional Input Based on Type */}
+                                        {perk.perkType === "url" && (
+                                            <div className="mt-3">
+                                                <label className="block text-sm text-gray-300 mb-2">
+                                                    URL
+                                                </label>
+                                                <Input
+                                                    value={perk.url || ""}
+                                                    onChange={(e) => updatePerkUrl(perk.id, e.target.value)}
+                                                    className="bg-[#1a0033] border-[#3a0062] text-white focus:outline-none focus:ring-1 focus:ring-[#ff66cc]"
+                                                    placeholder="https://example.com"
+                                                    disabled={isPending}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {(perk.perkType === "file" || perk.perkType === "audio") && (
+                                            <div className="mt-3 border-2 border-dashed border-[#3a0062] rounded-md p-4 text-center">
+                                                <label className="block text-sm text-gray-300 mb-2">
+                                                    {perk.perkType === "file" ? "Upload File (PDF, DOC)" : "Upload Audio"}
+                                                </label>
+                                                <div
+                                                    className="flex flex-col items-center justify-center cursor-pointer"
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                                                            handleFileUpload(perk.id, e.dataTransfer.files[0]);
+                                                        }
+                                                    }}
+                                                >
+                                                    {perk.fileData ? (
+                                                        <div className="text-[#00ccff]">
+                                                            {perk.fileData.name}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-400">
+                                                            Drag and drop or click to upload
+                                                        </div>
+                                                    )}
+                                                    <input
+                                                        type="file"
+                                                        accept={perk.perkType === "file" ? ".pdf,.doc,.docx" : ".mp3,.wav"}
+                                                        className="hidden"
+                                                        id={`file-upload-${perk.id}`}
+                                                        onChange={(e) => {
+                                                            if (e.target.files && e.target.files[0]) {
+                                                                handleFileUpload(perk.id, e.target.files[0]);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="mt-2 border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
+                                                        onClick={() => document.getElementById(`file-upload-${perk.id}`)?.click()}
+                                                    >
+                                                        Select File
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
