@@ -108,4 +108,18 @@ export const useUploadPerkFiles = (trackId: string) => {
             queryClient.invalidateQueries({ queryKey: ['trackPerks', trackId] });
         }
     });
-}; 
+};
+
+// Add this to src/hooks/usePerksManagement.ts
+export const useUploadStemFiles = (trackId: string) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (formData: FormData) => {
+            return perksService.uploadStemFiles(trackId, formData);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['perks', trackId] });
+        }
+    });
+};

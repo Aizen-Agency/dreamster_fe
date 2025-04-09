@@ -4,10 +4,9 @@ export interface Perk {
     id: string;
     title: string;
     description: string;
-    url?: string;
     active: boolean;
     perkType?: "text" | "url" | "file" | "audio";
-    fileUrl?: string;
+    s3_url?: string;
     additionalUrls?: Record<string, string>;
     created_at?: string;
     updated_at?: string;
@@ -17,7 +16,7 @@ export interface Perk {
 export interface CreatePerkRequest {
     title: string;
     description: string;
-    url?: string;
+    s3_url?: string;
     active?: boolean;
     perkType?: "text" | "url" | "file" | "audio";
 }
@@ -25,7 +24,7 @@ export interface CreatePerkRequest {
 export interface UpdatePerkRequest {
     title?: string;
     description?: string;
-    url?: string;
+    s3_url?: string;
     active?: boolean;
     perkType?: "text" | "url" | "file" | "audio";
 }
@@ -66,17 +65,7 @@ export const perksService = {
         return { active: response.data.active };
     },
 
-    // Upload stem files (special case for downloadable stems)
-    uploadStemFile: async (trackId: string, stemFile: File): Promise<void> => {
-        const formData = new FormData();
-        const fileExtension = stemFile.name.split('.').pop() || '';
 
-        // Rename the file to follow the pattern: stems/audio.{extension}
-        formData.append('file', stemFile, `stems/audio.${fileExtension}`);
-        formData.append('type', 'stem');
-
-        await apiClient.post(`/musician/tracks/${trackId}/files/stem`, formData);
-    },
 
     // Upload perk files (for custom perks)
     uploadPerkFiles: async (trackId: string, formData: FormData): Promise<void> => {
@@ -179,5 +168,19 @@ export const perksService = {
         const response = await apiClient.post(`/musician/tracks/${trackId}/perks/bulk`, formData);
 
         return response.data;
+    },
+
+    uploadStemFiles: async (trackId: string, formData: FormData): Promise<void> => {
+        // Log the FormData for debugging
+        console.log("Uploading stem files with FormData:",
+            Array.from(formData.entries()).map(entry => {
+                if (entry[1] instanceof File) {
+                    return [entry[0], `File: ${(entry[1] as File).name}`];
+                }
+                return entry;
+            })
+        );
+
+        await apiClient.post(`/musician/tracks/${trackId}/files/stem`, formData);
     }
 }; 
