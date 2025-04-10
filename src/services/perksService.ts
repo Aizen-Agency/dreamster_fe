@@ -3,6 +3,7 @@ import apiClient from "@/lib/apiClient";
 export interface Perk {
     id: string;
     title: string;
+    category: string;
     description: string;
     active: boolean;
     perkType?: "text" | "url" | "file" | "audio";
@@ -15,6 +16,7 @@ export interface Perk {
 
 export interface CreatePerkRequest {
     title: string;
+    category: string;
     description: string;
     s3_url?: string;
     active?: boolean;
@@ -165,7 +167,11 @@ export const perksService = {
             });
         });
 
-        const response = await apiClient.post(`/musician/tracks/${trackId}/perks/bulk`, formData);
+        const response = await apiClient.post(`/musician/tracks/${trackId}/perks/bulk`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
 
         return response.data;
     },

@@ -13,6 +13,7 @@ import { useGetTrack } from "@/hooks/useTrackManagement"
 import { usePerksManagement, useUploadPerkFiles, useUploadStemFiles } from "@/hooks/usePerksManagement"
 import { Perk as APIPerk } from "@/services/perksService"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { perksService } from "@/services/perksService"
 
 interface Perk {
     id: string
@@ -23,6 +24,7 @@ interface Perk {
     icon: React.ReactNode
     apiId?: string // To link with API perks
     perkType?: "text" | "url" | "file" | "audio"
+    category?: string
     fileData?: File
     url?: string
     isDirty?: boolean
@@ -55,6 +57,7 @@ export default function PerksPage() {
             title: "Exclusive Bonus Track",
             description: "Get access to an unreleased bonus track",
             icon: <FileMusic className="h-5 w-5 text-[#00ccff]" />,
+            category: "exclusive",
         },
         {
             id: "stems",
@@ -69,6 +72,7 @@ export default function PerksPage() {
                     <path d="M12 7V17" stroke="#ff66cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
             ),
+            category: "stem",
         },
         {
             id: "discord",
@@ -77,6 +81,7 @@ export default function PerksPage() {
             title: "Discord Access",
             description: "Join our private Discord community",
             icon: <MessageSquare className="h-5 w-5 text-[#00ccff]" />,
+            category: "discord",
         },
     ])
 
@@ -102,7 +107,8 @@ export default function PerksPage() {
                         enabled: apiPerk.active,
                         title: apiPerk.title,
                         description: apiPerk.description,
-                        apiId: apiPerk.id
+                        apiId: apiPerk.id,
+                        category: apiPerk.category || updatedPerks[matchingPerkIndex].category
                     };
                 } else {
                     // Add as custom perk
@@ -113,7 +119,8 @@ export default function PerksPage() {
                         title: apiPerk.title,
                         description: apiPerk.description,
                         icon: <Info className="h-5 w-5 text-[#00ccff]" />,
-                        apiId: apiPerk.id
+                        apiId: apiPerk.id,
+                        category: apiPerk.category || "custom"
                     });
                 }
             });
@@ -184,12 +191,25 @@ export default function PerksPage() {
                 await togglePerkStatus(perk.apiId);
             } else {
                 // If perk doesn't exist in API yet, create it
+                // Determine the correct category based on perk ID
+                let category = "custom";
+                if (perk.id === "stems") {
+                    category = "stem";
+                } else if (perk.id === "discord") {
+                    category = "discord";
+                } else if (perk.id === "exclusive-track") {
+                    category = "exclusive";
+                } else if (perk.category) {
+                    category = perk.category;
+                }
+
                 const newApiPerk = await createPerk({
                     title: perk.title,
                     description: perk.description,
                     active: true,
-                    perkType: perk.perkType || "text",
-                    s3_url: perk.url || ""
+                    perkType: perk.id === "stems" ? "audio" : (perk.perkType || "text"),
+                    s3_url: perk.url || "",
+                    category: category
                 });
 
                 // Update local state with the new API ID
@@ -258,7 +278,8 @@ export default function PerksPage() {
             enabled: false,
             title: "New Custom Perk",
             description: "Describe your custom perk here",
-            icon: <Info className="h-5 w-5 text-[#00ccff]" />
+            icon: <Info className="h-5 w-5 text-[#00ccff]" />,
+            category: "custom"
         };
 
         setCustomPerks([...customPerks, newPerk]);
@@ -340,7 +361,9 @@ export default function PerksPage() {
 
             // Create FormData for regular perk files
             const perkFormData = new FormData();
-            perkFormData.append('perks', JSON.stringify([])); // Add empty perks array as expected by backend
+
+            // Create an array to store perk data
+            const perksData = [];
 
             // Process each perk
             for (const perk of allEnabledPerks) {
@@ -354,7 +377,10 @@ export default function PerksPage() {
                         description: perk.description,
                         active: true,
                         perkType: perk.id === "stems" ? "audio" : (perk.perkType || "text"),
-                        s3_url: perk.url || ""
+                        s3_url: perk.url || "",
+                        category: perk.category || (perk.id === "stems" ? "stem" :
+                            perk.id === "discord" ? "discord" :
+                                perk.id === "exclusive-track" ? "exclusive" : "custom")
                     };
 
                     const newApiPerk = await createPerk(perkData);
@@ -369,43 +395,78 @@ export default function PerksPage() {
                     });
                 }
 
+                // Add perk data to the array
+                perksData.push({
+                    id: perkId,
+                    title: perk.title,
+                    description: perk.description,
+                    active: true,
+                    perkType: perk.id === "stems" ? "audio" : (perk.perkType || "text"),
+                    category: perk.category || "custom"
+                });
+
                 // Handle file upload if needed
                 if (perk.fileData && perkId) {
                     if (perk.id === "stems") {
                         // Handle stem files separately
-                        // Create a new FormData specifically for this stem file
                         const stemFormData = new FormData();
-
-                        // Log the file object to verify it's valid
-                        console.log("Stem file object:", perk.fileData);
-
-                        // Add the file with the correct field name
                         stemFormData.append('file', perk.fileData);
                         stemFormData.append('perk_id', perkId);
 
-                        // Log the FormData entries
-                        console.log("Stem FormData entries:",
-                            Array.from(stemFormData.entries()).map(entry => {
-                                if (entry[1] instanceof File) {
-                                    return [entry[0], `File: ${(entry[1] as File).name}`];
-                                }
-                                return entry;
-                            })
-                        );
-
-                        // Upload this stem file immediately
                         await uploadStemFilesMutation.mutateAsync(stemFormData);
                     } else {
-                        // Handle regular perk files
-                        perkFormData.append('perkId', perkId);
+                        // For regular perk files, add to the main FormData
+                        // Use the correct naming convention expected by the backend
                         perkFormData.append(`file_${perkId}_1`, perk.fileData);
                     }
                 }
             }
 
+            // Add the perks data to the FormData
+            perkFormData.append('perks', JSON.stringify(perksData));
+
             // Upload regular perk files if any
-            if (perkFormData && Array.from(perkFormData.entries()).length > 1) {
-                await uploadPerkFilesMutation.mutateAsync(perkFormData);
+            if (perkFormData) {
+                // Debug: Log what's in the FormData
+                console.log("FormData entries:");
+                for (const [key, value] of Array.from(perkFormData.entries())) {
+                    console.log(key, value);
+                }
+
+                // Check if we have any files in the FormData
+                let hasFiles = false;
+                const filesMap = new Map<string, File[]>();
+
+                for (const key of Array.from(perkFormData.keys())) {
+                    if (key.startsWith('file_')) {
+                        hasFiles = true;
+                        // Extract perkId from the key (format: file_PERKID_1)
+                        const perkId = key.split('_')[1];
+                        const file = perkFormData.get(key) as File;
+
+                        if (!filesMap.has(perkId)) {
+                            filesMap.set(perkId, []);
+                        }
+                        filesMap.get(perkId)?.push(file);
+                    }
+                }
+
+                // Only send if we have perks data or files
+                if (hasFiles || perksData.length > 0) {
+                    try {
+                        console.log("Sending data to backend...");
+
+                        // Use the bulkUpdatePerks method which is designed for this purpose
+                        await perksService.bulkUpdatePerks(trackId, perksData, filesMap);
+
+                        console.log("Data sent successfully");
+                    } catch (uploadError) {
+                        console.error("Error uploading perk files:", uploadError);
+                        throw uploadError; // Re-throw to be caught by the outer try/catch
+                    }
+                } else {
+                    console.log("No files or perks to upload, skipping API call");
+                }
             }
 
             // Navigate to next step
@@ -598,10 +659,9 @@ export default function PerksPage() {
                                                     type="file"
                                                     accept=".mp3,.wav"
                                                     className="hidden"
-                                                    id={`stems-upload-${perk.id}`}
+                                                    id={`file-upload-${perk.id}`}
                                                     onChange={(e) => {
                                                         if (e.target.files && e.target.files[0]) {
-                                                            // Force audio type for stems
                                                             handleFileUpload(perk.id, e.target.files[0]);
                                                         }
                                                     }}
@@ -610,7 +670,7 @@ export default function PerksPage() {
                                                     type="button"
                                                     variant="outline"
                                                     className="mt-2 border-[#ff66cc] text-[#ff66cc] hover:bg-[#ff66cc]/10"
-                                                    onClick={() => document.getElementById(`stems-upload-${perk.id}`)?.click()}
+                                                    onClick={() => document.getElementById(`file-upload-${perk.id}`)?.click()}
                                                 >
                                                     Select File
                                                 </Button>
@@ -650,7 +710,7 @@ export default function PerksPage() {
                                         </div>
                                     </div>
                                 )}
-                                {perk.enabled && (
+                                {perk.enabled && perk.id !== "stems" && perk.id !== "discord" && (
                                     <div className="p-4">
                                         <Input
                                             id={perk.id}
