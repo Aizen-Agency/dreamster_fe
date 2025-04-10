@@ -171,16 +171,25 @@ export const perksService = {
     },
 
     uploadStemFiles: async (trackId: string, formData: FormData): Promise<void> => {
-        // Log the FormData for debugging
-        console.log("Uploading stem files with FormData:",
+        console.log("Original FormData entries:",
             Array.from(formData.entries()).map(entry => {
                 if (entry[1] instanceof File) {
-                    return [entry[0], `File: ${(entry[1] as File).name}`];
+                    return [entry[0], `File: ${(entry[1] as File).name} (${(entry[1] as File).type})`];
                 }
                 return entry;
             })
         );
 
-        await apiClient.post(`/musician/tracks/${trackId}/files/stem`, formData);
+        const fileEntry = formData.get('file');
+        if (!fileEntry || !(fileEntry instanceof File) || !fileEntry.size) {
+            console.error("File is empty or invalid:", fileEntry);
+            throw new Error("The file is empty or invalid. Please select a valid audio file.");
+        }
+
+        await apiClient.post(`/musician/tracks/${trackId}/files/stem`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
     }
 }; 
