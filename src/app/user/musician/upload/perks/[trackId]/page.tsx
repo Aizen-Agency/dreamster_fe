@@ -35,6 +35,7 @@ export default function PerksPage() {
     const params = useParams()
     const trackId = params.trackId as string
     const [error, setError] = useState<string | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     const { data: trackData, isLoading: isTrackLoading, isError: isTrackError } = useGetTrack(trackId)
 
@@ -108,25 +109,42 @@ export default function PerksPage() {
                         title: apiPerk.title,
                         description: apiPerk.description,
                         apiId: apiPerk.id,
-                        category: apiPerk.category || updatedPerks[matchingPerkIndex].category
+                        category: apiPerk.category || updatedPerks[matchingPerkIndex].category,
+                        perkType: apiPerk.perkType || updatedPerks[matchingPerkIndex].perkType,
+                        url: apiPerk.s3_url || updatedPerks[matchingPerkIndex].url,
+                        // Preserve fileData if it exists
+                        fileData: updatedPerks[matchingPerkIndex].fileData
                     };
                 } else {
+                    // Find if this perk already exists in customPerks
+                    const existingCustomPerk = customPerks.find(p => p.apiId === apiPerk.id);
+
                     // Add as custom perk
                     newCustomPerks.push({
-                        id: `custom-${apiPerk.id}`,
+                        id: existingCustomPerk?.id || `custom-${apiPerk.id}`,
                         type: "Custom Perk",
                         enabled: apiPerk.active,
                         title: apiPerk.title,
                         description: apiPerk.description,
                         icon: <Info className="h-5 w-5 text-[#00ccff]" />,
                         apiId: apiPerk.id,
-                        category: apiPerk.category || "custom"
+                        category: apiPerk.category || "custom",
+                        perkType: apiPerk.perkType || "text",
+                        url: apiPerk.s3_url,
+                        // Preserve fileData if it exists
+                        fileData: existingCustomPerk?.fileData
                     });
                 }
             });
 
+            // Find custom perks that aren't in the API response but exist in local state
+            const apiPerkIds = apiPerks.map(p => p.id);
+            const localCustomPerksToKeep = customPerks.filter(p =>
+                !p.apiId || !apiPerkIds.includes(p.apiId)
+            );
+
             setPerks(updatedPerks);
-            setCustomPerks(newCustomPerks);
+            setCustomPerks([...newCustomPerks, ...localCustomPerksToKeep]);
         }
     }, [apiPerks]);
 
@@ -185,12 +203,19 @@ export default function PerksPage() {
 
         if (!perk) return;
 
+        // Update local state first
+        if (perks.find(p => p.id === id)) {
+            setPerks(perks.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p));
+        } else {
+            setCustomPerks(customPerks.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p));
+        }
+
         try {
             if (perk.apiId) {
                 // If perk exists in API, toggle its status
                 await togglePerkStatus(perk.apiId);
-            } else {
-                // If perk doesn't exist in API yet, create it
+            } else if (perk.enabled) {
+                // Only create if we're enabling the perk
                 // Determine the correct category based on perk ID
                 let category = "custom";
                 if (perk.id === "stems") {
@@ -215,25 +240,24 @@ export default function PerksPage() {
                 // Update local state with the new API ID
                 if (perks.find(p => p.id === id)) {
                     setPerks(perks.map(p =>
-                        p.id === id ? { ...p, enabled: true, apiId: newApiPerk.id } : p
+                        p.id === id ? { ...p, apiId: newApiPerk.id } : p
                     ));
                 } else {
                     setCustomPerks(customPerks.map(p =>
-                        p.id === id ? { ...p, enabled: true, apiId: newApiPerk.id } : p
+                        p.id === id ? { ...p, apiId: newApiPerk.id } : p
                     ));
                 }
-                return;
             }
+        } catch (err) {
+            console.error("Error toggling perk:", err);
+            setError("Failed to update perk status. Please try again.");
 
-            // Update local state
+            // Revert local state on error
             if (perks.find(p => p.id === id)) {
                 setPerks(perks.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p));
             } else {
                 setCustomPerks(customPerks.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p));
             }
-        } catch (err) {
-            console.error("Error toggling perk:", err);
-            setError("Failed to update perk status. Please try again.");
         }
     }
 
@@ -355,6 +379,7 @@ export default function PerksPage() {
             return
         }
 
+        setIsSubmitting(true);
         try {
             // Get all enabled perks
             const allEnabledPerks = [...perks.filter(perk => perk.enabled), ...customPerks.filter(perk => perk.enabled)];
@@ -454,6 +479,14 @@ export default function PerksPage() {
                 // Only send if we have perks data or files
                 if (hasFiles || perksData.length > 0) {
                     try {
+                        console.log("Files to be uploaded:");
+                        filesMap.forEach((files, perkId) => {
+                            console.log(`Perk ${perkId}: ${files.length} files`);
+                            files.forEach((file, index) => {
+                                console.log(`  File ${index + 1}: ${file.name} (${file.type})`);
+                            });
+                        });
+
                         console.log("Sending data to backend...");
 
                         // Use the bulkUpdatePerks method which is designed for this purpose
@@ -479,6 +512,8 @@ export default function PerksPage() {
             } else {
                 setError("Failed to save perks. Please try again.");
             }
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -1118,9 +1153,14 @@ export default function PerksPage() {
                     <Button
                         className="bg-[#00ccff] text-white hover:bg-[#00ccff]/80"
                         onClick={handleFinalize}
-                        disabled={isPending}
+                        disabled={isPending || isSubmitting}
                     >
-                        {isPending ? "Finalizing..." : "Next Step"}
+                        {isPending || isSubmitting ? (
+                            <div className="flex items-center">
+                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                <span>Finalizing...</span>
+                            </div>
+                        ) : "Next Step"}
                     </Button>
                 </div>
             </main>
