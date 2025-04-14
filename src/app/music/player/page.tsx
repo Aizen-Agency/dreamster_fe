@@ -48,6 +48,7 @@ export default function MusicPlayer() {
     const [loadingProgress, setLoadingProgress] = useState(0)
     const [isBuffering, setIsBuffering] = useState(false)
     const [isAudioReady, setIsAudioReady] = useState(false)
+    const [progressPercentage, setProgressPercentage] = useState(0)
 
     // Add a ref to track the last known position
     const lastKnownPositionRef = useRef(0)
@@ -110,24 +111,30 @@ export default function MusicPlayer() {
 
     // Handle seeking - wrap in useCallback
     const handleSeek = useCallback((value: number[]) => {
-        if (!audioRef.current || !duration) return
+        if (!audioRef.current || !duration) return;
 
-        const seekTime = value[0]
-        audioRef.current.currentTime = seekTime
-        setCurrentTime(seekTime)
+        const seekTime = value[0];
+        audioRef.current.currentTime = seekTime;
+        setCurrentTime(seekTime);
+
+        // Update progress percentage
+        setProgressPercentage((seekTime / duration) * 100);
     }, [duration, setCurrentTime]);
 
     // Handle progress bar click for seeking - wrap in useCallback
     const handleProgressBarClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        if (!audioRef.current || !duration) return
+        if (!audioRef.current || !duration) return;
 
-        const progressBar = e.currentTarget
-        const rect = progressBar.getBoundingClientRect()
-        const clickPosition = (e.clientX - rect.left) / rect.width
-        const seekTime = clickPosition * duration
+        const progressBar = e.currentTarget;
+        const rect = progressBar.getBoundingClientRect();
+        const clickPosition = (e.clientX - rect.left) / rect.width;
+        const seekTime = clickPosition * duration;
 
-        audioRef.current.currentTime = seekTime
-        setCurrentTime(seekTime)
+        audioRef.current.currentTime = seekTime;
+        setCurrentTime(seekTime);
+
+        // Update progress percentage
+        setProgressPercentage((seekTime / duration) * 100);
     }, [duration, setCurrentTime]);
 
     // Handle volume change - wrap in useCallback
@@ -317,6 +324,11 @@ export default function MusicPlayer() {
                 if (isPlaying || Math.abs(currentAudioTime - lastKnownPositionRef.current) > 0.1) {
                     setCurrentTime(currentAudioTime);
                     lastKnownPositionRef.current = currentAudioTime;
+
+                    // Update progress percentage directly here
+                    if (duration > 0) {
+                        setProgressPercentage((currentAudioTime / duration) * 100);
+                    }
                 }
             }
         };
@@ -328,7 +340,16 @@ export default function MusicPlayer() {
         const updateInterval = setInterval(updateCurrentTime, 50);
 
         return () => clearInterval(updateInterval);
-    }, [setCurrentTime, isPlaying]);
+    }, [setCurrentTime, isPlaying, duration]);
+
+    // Update the progress percentage whenever currentTime or duration changes
+    useEffect(() => {
+        if (duration > 0) {
+            setProgressPercentage((currentTime / duration) * 100);
+        } else {
+            setProgressPercentage(0);
+        }
+    }, [currentTime, duration]);
 
     useEffect(() => {
         console.log("Audio state:", {
@@ -356,8 +377,6 @@ export default function MusicPlayer() {
             </div>
         )
     }
-
-    let progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
