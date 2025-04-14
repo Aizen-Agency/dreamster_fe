@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Music } from "lucide-react"
+import { Music, PlusCircle, Users, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -51,6 +51,27 @@ export default function PricingPage() {
             return
         }
 
+        // Validate total percentage
+        if (totalCollaboratorPercentage > 100) {
+            setError("Total collaborator percentage exceeds 100%. Please adjust the values.")
+            return
+        }
+
+        // Filter out empty collaborators
+        const validCollaborators = collaborators.filter(
+            collab => collab.walletAddress.trim() !== ''
+        )
+
+        // Validate wallet addresses for non-empty collaborators
+        const invalidWalletAddress = validCollaborators.find(
+            collab => !/^0x[a-fA-F0-9]{40}$/.test(collab.walletAddress)
+        )
+
+        if (invalidWalletAddress) {
+            setError("Please enter valid Ethereum wallet addresses for all collaborators (format: 0x followed by 40 hex characters)")
+            return
+        }
+
         setIsUpdating(true)
         setError(null)
 
@@ -65,7 +86,11 @@ export default function PricingPage() {
 
             await updateTrackMutation.mutateAsync({
                 starting_price: price,
-                exclusive: isExclusive
+                exclusive: isExclusive,
+                collaborators: validCollaborators.length > 0 ? validCollaborators.map(collab => ({
+                    wallet_address: collab.walletAddress,
+                    split_share: collab.percentage
+                })) : undefined
             })
 
             router.push(`/user/musician/upload/perks/${trackId}`)
@@ -80,6 +105,40 @@ export default function PricingPage() {
     const handleBack = () => {
         router.push("/user/musician/upload")
     }
+
+    const [collaborators, setCollaborators] = useState([
+        { id: '1', walletAddress: '', percentage: 0 },
+        { id: '2', walletAddress: '', percentage: 0 },
+    ])
+
+    const addCollaborator = () => {
+        setCollaborators([...collaborators, { id: (collaborators.length + 1).toString(), walletAddress: '', percentage: 0 }])
+    }
+
+    const updateCollaboratorWallet = (id: string, walletAddress: string) => {
+        setCollaborators(prevCollaborators =>
+            prevCollaborators.map(collaborator =>
+                collaborator.id === id ? { ...collaborator, walletAddress } : collaborator
+            )
+        )
+    }
+
+    const updateCollaboratorPercentage = (id: string, percentage: number) => {
+        setCollaborators(prevCollaborators =>
+            prevCollaborators.map(collaborator =>
+                collaborator.id === id ? { ...collaborator, percentage } : collaborator
+            )
+        )
+    }
+
+    const removeCollaborator = (id: string) => {
+        setCollaborators(prevCollaborators =>
+            prevCollaborators.filter(collaborator => collaborator.id !== id)
+        )
+    }
+
+    const totalCollaboratorPercentage = collaborators.reduce((total, collaborator) => total + collaborator.percentage, 0)
+    const mainAccountPercentage = 100 - totalCollaboratorPercentage
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-pink-500 relative overflow-hidden">
@@ -160,9 +219,9 @@ export default function PricingPage() {
                     <p className="text-gray-300">Configure the initial price for your NFT</p>
                 </div>
 
-                {/* Pricing Configuration and Preview */}
+                {/* Main content area - using grid to create two columns */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Pricing Configuration */}
+                    {/* Left column - Pricing Configuration */}
                     <div className="bg-[#2a0052] border-2 border-[#6700af] rounded-lg p-6 flex flex-col relative z-20">
                         <h2 className="text-[#00ccff] text-xl mb-4">Pricing Configuration</h2>
                         <p className="text-gray-300 text-sm mb-6">
@@ -200,9 +259,97 @@ export default function PricingPage() {
                                 Mark this track as exclusive content available only to NFT owners
                             </p>
                         </div>
+
+                        {/* Collaborators section */}
+                        <div className="pt-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-lg font-medium text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400">
+                                    Collaborators (Optional)
+                                </p>
+                                <Button
+                                    onClick={addCollaborator}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30"
+                                >
+                                    <PlusCircle className="h-5 w-5 mr-1" />
+                                    {collaborators.length === 0 ? "Add Collaborator" : "Add Another"}
+                                </Button>
+                            </div>
+
+                            {collaborators.length === 0 ? (
+                                <div className="text-center py-8 border border-dashed border-purple-700/50 rounded-md bg-black/20">
+                                    <Users className="h-10 w-10 mx-auto text-purple-400 opacity-50 mb-2" />
+                                    <p className="text-purple-300 text-sm">No collaborators added</p>
+                                    <p className="text-purple-400/70 text-xs mt-1">Add collaborators to split royalties and ownership</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {collaborators.map((collaborator, index) => (
+                                        <div
+                                            key={collaborator.id}
+                                            className="grid grid-cols-12 gap-2 items-center p-3 rounded-md bg-black/20 border border-purple-700/50"
+                                        >
+                                            <div className="col-span-7">
+                                                <label className="block text-xs font-medium text-pink-300 mb-1">Wallet Address *</label>
+                                                <Input
+                                                    type="text"
+                                                    value={collaborator.walletAddress}
+                                                    onChange={(e) => updateCollaboratorWallet(collaborator.id, e.target.value)}
+                                                    placeholder="0x..."
+                                                    className="bg-gray-900/60 border-purple-700 text-cyan-100 focus:border-cyan-400 focus:ring-cyan-400/20 text-sm"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="col-span-3">
+                                                <label className="block text-xs font-medium text-pink-300 mb-1">Split %</label>
+                                                <Input
+                                                    type="number"
+                                                    value={collaborator.percentage}
+                                                    onChange={(e) => updateCollaboratorPercentage(collaborator.id, Number(e.target.value))}
+                                                    min="0"
+                                                    max="100"
+                                                    className="bg-gray-900/60 border-purple-700 text-cyan-100 focus:border-cyan-400 focus:ring-cyan-400/20 text-sm"
+                                                />
+                                            </div>
+                                            <div className="col-span-2 self-end">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeCollaborator(collaborator.id)}
+                                                    className="text-pink-400 hover:text-pink-300 hover:bg-pink-950/30 h-9"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {collaborators.length > 0 && (
+                                <div className="mt-4 p-3 rounded-md bg-black/30 border border-purple-700/50">
+                                    <div className="flex justify-between text-sm mb-1">
+                                        <span className="text-purple-300">Collaborators:</span>
+                                        <span className="text-cyan-400">{totalCollaboratorPercentage}%</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-purple-300">Your share:</span>
+                                        <span className={mainAccountPercentage >= 0 ? "text-cyan-400" : "text-pink-500 font-bold"}>
+                                            {mainAccountPercentage}%
+                                        </span>
+                                    </div>
+                                    {totalCollaboratorPercentage > 100 && (
+                                        <p className="text-pink-500 text-xs mt-2">
+                                            Total percentage exceeds 100%. Please adjust collaborator percentages.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Pricing Preview */}
+                    {/* Right column - Pricing Preview */}
                     <div className="bg-[#2a0052] border-2 border-[#6700af] rounded-lg p-6 flex flex-col relative z-20">
                         <h2 className="audiowide-regular text-[#00ccff] text-xl mb-4">Pricing Preview</h2>
 
@@ -343,7 +490,6 @@ export default function PricingPage() {
                         </div>
                     </div>
                 </div>
-
                 {/* Navigation Buttons */}
                 <div className="audiowide-regular mt-8 flex justify-between">
                     <Button
@@ -362,12 +508,12 @@ export default function PricingPage() {
                         {updateTrackMutation.isPending ? "Updating..." : "Next Step"}
                     </Button>
                 </div>
-            </main>
+            </main >
 
             {/* Footer - increased z-index */}
-            <footer className="w-full py-3 px-6 text-center text-pink-700 text-sm relative z-10">
-                © 2025 Dreamster. All rights reserved.
-            </footer>
-        </div>
+            < footer className="w-full py-3 px-6 text-center text-pink-700 text-sm relative z-10" >
+                © 2025 Dreamster.All rights reserved.
+            </footer >
+        </div >
     )
 }
