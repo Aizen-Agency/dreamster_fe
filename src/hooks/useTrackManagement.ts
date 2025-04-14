@@ -133,10 +133,25 @@ export const useGetTrack = (trackId: string) => {
 export const useUpdateTrack = (trackId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (trackData: Partial<Omit<TrackFormData, 'audio' | 'artwork'>>) => {
+        mutationFn: async (trackData: Partial<Omit<TrackFormData, 'audio' | 'artwork'>> & {
+            collaborators?: Array<{
+                wallet_address: string;
+                split_share: number;
+            }>
+        }) => {
+            // Format collaborators for the API if they exist
+            const formattedData = { ...trackData };
+
+            if (trackData.collaborators) {
+                formattedData.collaborators = trackData.collaborators.map(collab => ({
+                    wallet_address: collab.wallet_address as string,
+                    split_share: collab.split_share as number
+                }));
+            }
+
             const response = await axios.put(
                 `${API_BASE_URL}/musician/tracks/${trackId}`,
-                trackData,
+                formattedData,
                 getAuthHeaders()
             );
 
