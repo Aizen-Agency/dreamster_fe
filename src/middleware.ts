@@ -12,6 +12,7 @@ const publicPages = [
   '/auth/register/success',
   '/user/account/recovery',
   '/landingpage',
+  '/music/share/player',
 ];
 
 export function middleware(request: NextRequest) {
