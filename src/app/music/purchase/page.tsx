@@ -7,19 +7,28 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTrackDetails } from "@/hooks/useTrackExplorer"
+import { useCreatePaymentIntent } from "@/hooks/usePayments"
+import { useAuthStore } from "@/store/authStore"
 
 const ApplePayIcon = () => <span>Apple Pay</span>
 
 export default function TrackPurchase() {
     const [paymentMethod, setPaymentMethod] = useState<string>("credit-card")
     const [quantity, setQuantity] = useState(1)
+    const [isPurchasing, setIsPurchasing] = useState(false)
+    const [purchaseError, setPurchaseError] = useState<string | null>(null)
+
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { isLoggedIn } = useAuthStore()
 
     // Get track details from URL parameters
     const trackId = searchParams.get('id')
     // Fetch full track details if needed
     const { data: trackData, isLoading } = useTrackDetails(trackId)
+
+    // Payment intent mutation
+    const createPaymentIntent = useCreatePaymentIntent()
 
     const incrementQuantity = () => setQuantity((prev) => prev + 1)
     const decrementQuantity = () => setQuantity((prev) => Math.max(1, prev - 1))
@@ -27,6 +36,37 @@ export default function TrackPurchase() {
     // Use track data from API if available, otherwise use URL params
     const title = trackData?.title || "Unknown Track"
     const artist = trackData?.artist?.name || "Unknown Artist"
+
+    const handlePurchase = async () => {
+        if (!trackId) {
+            setPurchaseError("Invalid track selection")
+            return
+        }
+
+        if (!isLoggedIn) {
+            // Redirect to login with return URL
+            router.push(`/login?redirect=/music/purchase?id=${trackId}`)
+            return
+        }
+
+        setIsPurchasing(true)
+        setPurchaseError(null)
+
+        try {
+            // Create payment intent
+            const response = await createPaymentIntent.mutateAsync({
+                trackId,
+                quantity
+            })
+
+            // Redirect to success page with track ID
+            router.push(`/music/purchase/success?track_id=${trackId}`)
+        } catch (error) {
+            console.error("Purchase error:", error)
+            setPurchaseError("There was an error processing your purchase. Please try again.")
+            setIsPurchasing(false)
+        }
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
@@ -131,6 +171,12 @@ export default function TrackPurchase() {
                             </span>
                         </div>
 
+                        {purchaseError && (
+                            <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md text-white text-sm">
+                                {purchaseError}
+                            </div>
+                        )}
+
                         <div className="space-y-3 mb-4 bg-indigo-900/30 p-3 rounded-md border border-fuchsia-500/30">
                             {["Exclusive behind-the-scenes access", "Digital ownership badge", "Early access to future releases"].map(
                                 (benefit, index) => (
@@ -144,8 +190,17 @@ export default function TrackPurchase() {
 
                         <Button
                             className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white font-bold py-3 rounded-md"
+                            onClick={handlePurchase}
+                            disabled={isPurchasing || isLoading}
                         >
-                            Complete Purchase
+                            {isPurchasing ? (
+                                <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                    Processing...
+                                </div>
+                            ) : (
+                                "Complete Purchase"
+                            )}
                         </Button>
                     </div>
                 </div>

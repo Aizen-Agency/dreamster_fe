@@ -12,6 +12,8 @@ const publicPages = [
   '/auth/register/success',
   '/user/account/recovery',
   '/landingpage',
+  '/music',
+  '/music/share',
   '/music/share/player',
 ];
 

@@ -6,7 +6,8 @@ import * as Slider from "@radix-ui/react-slider"
 import { Button } from "@/components/ui/button"
 import MusicianProfile from "@/components/musician-profile"
 // import FanEarningsInfo from "@/components/dreamster-info"
-import { useTrackDetails, useTrackStream, useTrackLikes } from "@/hooks/useTrackExplorer"
+import { useTrackLikes } from "@/hooks/useTrackExplorer"
+import { useSharedTrackDetails, useSharedTrackStream, useRecordTrackShare } from "@/hooks/useSharedTrack"
 import { useRouter, useParams } from "next/navigation"
 import { useAuthStore } from "@/store/authStore"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -38,99 +39,172 @@ export default function MusicPlayer() {
     const [loadingProgress, setLoadingProgress] = useState(0)
     const [progressPercentage, setProgressPercentage] = useState(0)
 
+    // For non-authenticated like state
+    const [isLiked, setIsLiked] = useState(false)
+    const [likesCount, setLikesCount] = useState(0)
+
     // Refs
     const audioRef = useRef<HTMLAudioElement>(null)
     const previewTimerRef = useRef<NodeJS.Timeout | null>(null)
     const lastKnownPositionRef = useRef(0)
 
-    // Fetch track data
-    const { data: trackData, isLoading: isLoadingTrack } = useTrackDetails(trackId)
-    const { data: streamData, isLoading: isLoadingStream } = useTrackStream(trackId)
+    // Fetch track data using shared hooks (no auth required)
+    const { data: trackData, isLoading: isLoadingTrack } = useSharedTrackDetails(trackId)
+    const { data: streamData, isLoading: isLoadingStream } = useSharedTrackStream(trackId)
+    const recordShareMutation = useRecordTrackShare()
 
-    // Get like functionality
-    const {
-        isLiked,
-        likesCount,
-        toggleLike,
-        isLoading: isLoadingLikeStatus
-    } = useTrackLikes(trackId)
+    // Get like functionality (only if authenticated)
+    const likeHookResult = useTrackLikes(isAuthenticated ? trackId : null)
 
+    // Record that this track was shared when the page loads
+    useEffect(() => {
+        if (trackId) {
+            recordShareMutation.mutate({ trackId, platform: "link" })
+        }
+    }, [trackId])
+
+    // Set up like data when available
+    useEffect(() => {
+        if (isAuthenticated && likeHookResult.likesCount !== undefined) {
+            setIsLiked(likeHookResult.isLiked)
+            setLikesCount(likeHookResult.likesCount)
+        } else if (trackData) {
+            // For non-authenticated users, just show the count from track data
+            setLikesCount(trackData.likes_count || 0)
+        }
+    }, [isAuthenticated, likeHookResult, trackData])
+
+    // Modified like handler
+    const handleLike = () => {
+        if (!isAuthenticated) {
+            setShowLoginPrompt(true)
+            return
+        }
+
+        likeHookResult.toggleLike(trackId)
+    }
+
+    // Simplified preview limit enforcement
+    useEffect(() => {
+        if (!audioRef.current || isAuthenticated) return;
+
+        const audio = audioRef.current;
+
+        const enforcePreviewLimit = () => {
+            if (audio.currentTime >= PREVIEW_LIMIT_SECONDS) {
+                // Pause playback
+                audio.pause();
+                setIsPlaying(false);
+
+                // Reset to exactly the preview limit
+                audio.currentTime = PREVIEW_LIMIT_SECONDS;
+                setCurrentTime(PREVIEW_LIMIT_SECONDS);
+
+                // Show login prompt
+                setShowLoginPrompt(true);
+            }
+        };
+
+        // Add a direct event listener for timeupdate
+        audio.addEventListener("timeupdate", enforcePreviewLimit);
+
+        return () => {
+            audio.removeEventListener("timeupdate", enforcePreviewLimit);
+        };
+    }, [isAuthenticated, setShowLoginPrompt]);
+
+    // Simplified seek handler that respects preview limit
+    const handleSeek = (newValue: number[]) => {
+        const seekTime = newValue[0];
+
+        // Prevent seeking beyond preview limit for non-authenticated users
+        if (!isAuthenticated && seekTime > PREVIEW_LIMIT_SECONDS) {
+            setShowLoginPrompt(true);
+            if (audioRef.current) {
+                audioRef.current.currentTime = PREVIEW_LIMIT_SECONDS;
+            }
+            setCurrentTime(PREVIEW_LIMIT_SECONDS);
+            return;
+        }
+
+        setCurrentTime(seekTime);
+        if (audioRef.current) {
+            audioRef.current.currentTime = seekTime;
+        }
+    };
+
+    // Simplified progress bar click handler
+    const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!audioRef.current || !duration) return;
+
+        const progressBar = e.currentTarget;
+        const rect = progressBar.getBoundingClientRect();
+        const clickPosition = (e.clientX - rect.left) / rect.width;
+        let seekTime = clickPosition * duration;
+
+        // For non-authenticated users, strictly cap at preview limit
+        if (!isAuthenticated) {
+            if (seekTime > PREVIEW_LIMIT_SECONDS) {
+                seekTime = PREVIEW_LIMIT_SECONDS;
+                setShowLoginPrompt(true);
+            }
+        }
+
+        // Set the time
+        audioRef.current.currentTime = seekTime;
+        setCurrentTime(seekTime);
+    };
+
+    // Simplified play/pause toggle that respects preview limit
     const togglePlay = () => {
         if (audioRef.current) {
             if (isPlaying) {
-                audioRef.current.pause()
-                setIsPlaying(false)
+                audioRef.current.pause();
+                setIsPlaying(false);
 
                 // Store the last known position when pausing
-                lastKnownPositionRef.current = audioRef.current.currentTime
-
-                if (previewTimerRef.current) {
-                    clearTimeout(previewTimerRef.current)
-                    previewTimerRef.current = null
-                }
+                lastKnownPositionRef.current = audioRef.current.currentTime;
             } else {
                 // Check if we're already at or beyond the preview limit for non-authenticated users
-                if (!isAuthenticated && audioRef.current.currentTime >= 30) {
-                    // Force position to preview limit
-                    audioRef.current.currentTime = PREVIEW_LIMIT_SECONDS
-                    setCurrentTime(PREVIEW_LIMIT_SECONDS)
-                    setShowLoginPrompt(true)
-                    return
+                if (!isAuthenticated && audioRef.current.currentTime >= PREVIEW_LIMIT_SECONDS) {
+                    setShowLoginPrompt(true);
+                    return;
                 }
 
                 // Start playing
                 audioRef.current.play()
                     .then(() => {
-                        setIsPlaying(true)
-
-                        // Set preview timer for non-authenticated users
-                        if (!isAuthenticated) {
-                            const timeRemaining = Math.max(0, PREVIEW_LIMIT_SECONDS - audioRef.current!.currentTime) * 1000
-                            previewTimerRef.current = setTimeout(() => {
-                                if (audioRef.current) {
-                                    audioRef.current.pause()
-                                    // Force position to preview limit
-                                    audioRef.current.currentTime = PREVIEW_LIMIT_SECONDS
-                                    setCurrentTime(PREVIEW_LIMIT_SECONDS)
-                                    setIsPlaying(false)
-                                    setShowLoginPrompt(true)
-                                }
-                            }, timeRemaining)
-                        }
+                        setIsPlaying(true);
                     })
                     .catch(err => {
-                        console.error("Playback failed:", err)
-                        setAudioError(`Failed to play audio: ${err.message}`)
-                    })
+                        console.error("Playback failed:", err);
+                        setAudioError(`Failed to play audio: ${err.message}`);
+                    });
             }
         }
-    }
+    };
+
+    // Update progress percentage with preview limit cap
+    useEffect(() => {
+        if (duration > 0) {
+            // For non-authenticated users, cap the visual progress
+            if (!isAuthenticated) {
+                const maxAllowedPercentage = (PREVIEW_LIMIT_SECONDS / duration) * 100;
+                setProgressPercentage(Math.min((currentTime / duration) * 100, maxAllowedPercentage));
+            } else {
+                // For authenticated users, show full progress
+                setProgressPercentage((currentTime / duration) * 100);
+            }
+        } else {
+            setProgressPercentage(0);
+        }
+    }, [currentTime, duration, isAuthenticated]);
 
     const handleVolumeChange = (newValue: number[]) => {
         const newVolume = newValue[0]
         setVolume(newVolume)
         if (audioRef.current) {
             audioRef.current.volume = newVolume
-        }
-    }
-
-    const handleSeek = (newValue: number[]) => {
-        const seekTime = newValue[0]
-
-        // Prevent seeking beyond preview limit for non-authenticated users
-        if (!isAuthenticated && seekTime > PREVIEW_LIMIT_SECONDS) {
-            setShowLoginPrompt(true)
-            // Force position to preview limit
-            if (audioRef.current) {
-                audioRef.current.currentTime = PREVIEW_LIMIT_SECONDS
-            }
-            setCurrentTime(PREVIEW_LIMIT_SECONDS)
-            return
-        }
-
-        setCurrentTime(seekTime)
-        if (audioRef.current) {
-            audioRef.current.currentTime = seekTime
         }
     }
 
@@ -146,102 +220,6 @@ export default function MusicPlayer() {
         }
     }
 
-    // Add this function to handle progress bar clicks
-    const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!audioRef.current || !duration) return;
-
-        const progressBar = e.currentTarget;
-        const rect = progressBar.getBoundingClientRect();
-        const clickPosition = (e.clientX - rect.left) / rect.width;
-        const seekTime = clickPosition * duration;
-
-        // Prevent seeking beyond preview limit for non-authenticated users
-        if (!isAuthenticated && seekTime > PREVIEW_LIMIT_SECONDS) {
-            setShowLoginPrompt(true);
-            // Force position to preview limit
-            audioRef.current.currentTime = PREVIEW_LIMIT_SECONDS;
-            setCurrentTime(PREVIEW_LIMIT_SECONDS);
-            return;
-        }
-
-        audioRef.current.currentTime = seekTime;
-        setCurrentTime(seekTime);
-    }
-
-    // Add this effect to handle the preview limit specifically
-    useEffect(() => {
-        if (!audioRef.current || isAuthenticated) return;
-
-        // This function will check if we need to enforce the preview limit
-        const enforcePreviewLimit = () => {
-            const audio = audioRef.current;
-            if (!audio) return;
-
-            // If we're beyond the preview limit
-            if (audio.currentTime > PREVIEW_LIMIT_SECONDS) {
-                console.log("Enforcing preview limit at:", audio.currentTime);
-
-                // Pause the audio
-                audio.pause();
-                setIsPlaying(false);
-
-                // Reset to exactly the preview limit
-                audio.currentTime = PREVIEW_LIMIT_SECONDS;
-                setCurrentTime(PREVIEW_LIMIT_SECONDS);
-
-                // Show login prompt
-                setShowLoginPrompt(true);
-            }
-        };
-
-        // Check frequently (every 100ms)
-        const limitCheckInterval = setInterval(enforcePreviewLimit, 100);
-
-        // Also add a direct event listener for timeupdate
-        const handleTimeUpdate = () => {
-            enforcePreviewLimit();
-        };
-
-        audioRef.current.addEventListener("timeupdate", handleTimeUpdate);
-
-        return () => {
-            clearInterval(limitCheckInterval);
-            audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
-        };
-    }, [isAuthenticated, setCurrentTime, setIsPlaying]);
-
-    // Add this effect to enforce the preview limit by capping the progress percentage
-    useEffect(() => {
-        if (!isAuthenticated && duration > 0) {
-            // Calculate the maximum allowed percentage for non-authenticated users
-            const maxAllowedPercentage = (PREVIEW_LIMIT_SECONDS / duration) * 100;
-
-            // If current percentage exceeds the limit
-            if (progressPercentage > maxAllowedPercentage) {
-                console.log("Capping progress percentage at:", maxAllowedPercentage);
-
-                // Cap the percentage
-                setProgressPercentage(maxAllowedPercentage);
-
-                // Also update the current time and audio position
-                const limitedTime = PREVIEW_LIMIT_SECONDS;
-                setCurrentTime(limitedTime);
-
-                // If playing, pause the audio and show login prompt
-                if (isPlaying && audioRef.current) {
-                    audioRef.current.pause();
-                    setIsPlaying(false);
-                    setShowLoginPrompt(true);
-                }
-
-                // Force the audio position to the limit
-                if (audioRef.current) {
-                    audioRef.current.currentTime = limitedTime;
-                }
-            }
-        }
-    }, [progressPercentage, isAuthenticated, duration, isPlaying]);
-
     // Handle audio element events
     useEffect(() => {
         const audio = audioRef.current
@@ -250,24 +228,26 @@ export default function MusicPlayer() {
         const updateProgress = () => {
             const newTime = audio.currentTime;
 
-            // For non-authenticated users, enforce the preview limit
-            if (!isAuthenticated && duration > 0) {
-                const maxAllowedTime = PREVIEW_LIMIT_SECONDS;
-                const maxAllowedPercentage = (maxAllowedTime / duration) * 100;
+            // For non-authenticated users, strictly enforce the preview limit
+            if (!isAuthenticated && newTime >= PREVIEW_LIMIT_SECONDS) {
+                // Pause playback immediately
+                audio.pause();
+                setIsPlaying(false);
 
-                if (newTime >= maxAllowedTime) {
-                    if (isPlaying) {
-                        audio.pause();
-                        setIsPlaying(false);
-                        setShowLoginPrompt(true);
-                    }
+                // Force position to preview limit
+                audio.currentTime = PREVIEW_LIMIT_SECONDS;
+                setCurrentTime(PREVIEW_LIMIT_SECONDS);
 
-                    // Force position to preview limit
-                    audio.currentTime = maxAllowedTime;
-                    setCurrentTime(maxAllowedTime);
+                // Show login prompt
+                setShowLoginPrompt(true);
+
+                // Calculate capped percentage
+                if (duration > 0) {
+                    const maxAllowedPercentage = (PREVIEW_LIMIT_SECONDS / duration) * 100;
                     setProgressPercentage(maxAllowedPercentage);
-                    return; // Return early to prevent further execution
                 }
+
+                return; // Return early to prevent further execution
             }
 
             // Only execute this code if we're not at the preview limit
@@ -311,6 +291,11 @@ export default function MusicPlayer() {
         audio.addEventListener("error", handleError)
         audio.addEventListener("progress", handleProgress)
 
+        // Add inside your audio element setup
+        audio.addEventListener("timeupdate", () => {
+            console.log("timeupdate event fired", audio.currentTime);
+        });
+
         return () => {
             if (previewTimerRef.current) {
                 clearTimeout(previewTimerRef.current)
@@ -328,61 +313,81 @@ export default function MusicPlayer() {
 
     // Set audio source when stream data is available
     useEffect(() => {
-        if (!audioRef.current) return
+        if (!audioRef.current) return;
 
         if (streamData?.stream_url || trackData?.audio_url) {
             // Reset states when source changes
-            setCurrentTime(0)
-            setLoadingProgress(0)
-            setIsBuffering(true)
-            setIsAudioReady(false)
+            setCurrentTime(0);
+            setLoadingProgress(0);
+            setIsBuffering(true);
+            setIsAudioReady(false);
 
             // Reset the last known position when changing tracks
-            lastKnownPositionRef.current = 0
+            lastKnownPositionRef.current = 0;
 
             // Set the source
-            audioRef.current.src = streamData?.stream_url || trackData?.audio_url || ''
-            audioRef.current.load()
+            audioRef.current.src = streamData?.stream_url || trackData?.audio_url || '';
+            audioRef.current.load();
 
-            // Force the audio to load and calculate duration without playing
+            // For non-authenticated users, add a hard limit on playback
+            if (!isAuthenticated) {
+                // This function will run every time the audio time updates
+                const strictEnforcePreviewLimit = () => {
+                    if (audioRef.current && audioRef.current.currentTime >= PREVIEW_LIMIT_SECONDS) {
+                        audioRef.current.pause();
+                        audioRef.current.currentTime = PREVIEW_LIMIT_SECONDS;
+                        setIsPlaying(false);
+                        setCurrentTime(PREVIEW_LIMIT_SECONDS);
+                        setShowLoginPrompt(true);
+                    }
+                };
+
+                // Add this event listener to catch any time updates
+                audioRef.current.addEventListener("timeupdate", strictEnforcePreviewLimit);
+
+                // Return cleanup function
+                return () => {
+                    audioRef.current?.removeEventListener("loadedmetadata", handleLoadedMetadata);
+                    audioRef.current?.removeEventListener("canplaythrough", handleCanPlayThrough);
+                    audioRef.current?.removeEventListener("timeupdate", strictEnforcePreviewLimit);
+                };
+            }
+
+            // Original event listeners and cleanup...
             const handleLoadedMetadata = () => {
                 if (audioRef.current && audioRef.current.duration && !isNaN(audioRef.current.duration)) {
-                    setDuration(audioRef.current.duration)
-                    console.log("Duration set from loadedmetadata:", audioRef.current.duration)
-                    setIsAudioReady(true)
-                    setIsBuffering(false)
+                    setDuration(audioRef.current.duration);
+                    setIsAudioReady(true);
+                    setIsBuffering(false);
                 }
-            }
+            };
 
-            // Use the canplaythrough event only for play state management
             const handleCanPlayThrough = () => {
-                setIsAudioReady(true)
-                setIsBuffering(false)
+                setIsAudioReady(true);
+                setIsBuffering(false);
+            };
 
-                // Double-check duration
-                if (audioRef.current && audioRef.current.duration && !isNaN(audioRef.current.duration)) {
-                    setDuration(audioRef.current.duration)
-                }
-            }
-
-            audioRef.current.addEventListener("loadedmetadata", handleLoadedMetadata)
-            audioRef.current.addEventListener("canplaythrough", handleCanPlayThrough)
+            audioRef.current.addEventListener("loadedmetadata", handleLoadedMetadata);
+            audioRef.current.addEventListener("canplaythrough", handleCanPlayThrough);
 
             return () => {
-                audioRef.current?.removeEventListener("loadedmetadata", handleLoadedMetadata)
-                audioRef.current?.removeEventListener("canplaythrough", handleCanPlayThrough)
-            }
+                audioRef.current?.removeEventListener("loadedmetadata", handleLoadedMetadata);
+                audioRef.current?.removeEventListener("canplaythrough", handleCanPlayThrough);
+            };
         }
-    }, [streamData, trackData])
+    }, [streamData, trackData, isAuthenticated]);
 
-    // Update the progress percentage whenever currentTime or duration changes
+    // Debug logging for preview limit
     useEffect(() => {
-        if (duration > 0) {
-            setProgressPercentage((currentTime / duration) * 100)
-        } else {
-            setProgressPercentage(0)
+        if (!isAuthenticated && currentTime >= PREVIEW_LIMIT_SECONDS) {
+            console.log("Preview limit reached:", {
+                currentTime,
+                PREVIEW_LIMIT_SECONDS,
+                isPlaying,
+                showLoginPrompt
+            });
         }
-    }, [currentTime, duration])
+    }, [currentTime, isAuthenticated, isPlaying, showLoginPrompt]);
 
     const handleBack = () => {
         router.back()
@@ -395,15 +400,6 @@ export default function MusicPlayer() {
         }
 
         router.push(`/music/purchase?id=${trackId}`)
-    }
-
-    const handleLike = () => {
-        if (!isAuthenticated) {
-            setShowLoginPrompt(true)
-            return
-        }
-
-        toggleLike(trackId)
     }
 
     if (isLoadingTrack || isLoadingStream) {
@@ -494,17 +490,50 @@ export default function MusicPlayer() {
                                     onClick={handleProgressBarClick}
                                 >
                                     <div className="bg-fuchsia-900 relative grow rounded-full h-1 w-full">
+                                        {/* Loading progress indicator */}
                                         <div
                                             className="absolute bg-fuchsia-700/50 rounded-full h-full"
                                             style={{ width: `${loadingProgress}%` }}
                                         />
+
+                                        {/* Playback progress indicator */}
                                         <div
                                             className="absolute bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-full h-full"
                                             style={{
                                                 width: `${progressPercentage}%`,
-                                                transition: isPlaying ? 'width 0.1s linear' : 'none' // Only animate when playing
+                                                transition: isPlaying ? 'width 0.1s linear' : 'none'
                                             }}
                                         />
+
+                                        {/* Preview limit indicator and disabled section for non-authenticated users */}
+                                        {!isAuthenticated && duration > 0 && (
+                                            <>
+                                                {/* Preview limit line */}
+                                                <div
+                                                    className="absolute top-[-8px] w-0.5 h-4 bg-red-500"
+                                                    style={{
+                                                        left: `${(PREVIEW_LIMIT_SECONDS / duration) * 100}%`,
+                                                        zIndex: 10
+                                                    }}
+                                                >
+                                                    <div className="absolute top-[-20px] left-[-15px] text-xs text-red-400">
+                                                        Preview limit
+                                                    </div>
+                                                </div>
+
+                                                {/* Disabled section beyond preview limit */}
+                                                <div
+                                                    className="absolute bg-gray-700/50 rounded-full h-full"
+                                                    style={{
+                                                        left: `${(PREVIEW_LIMIT_SECONDS / duration) * 100}%`,
+                                                        width: `${100 - (PREVIEW_LIMIT_SECONDS / duration) * 100}%`,
+                                                        zIndex: 5
+                                                    }}
+                                                />
+                                            </>
+                                        )}
+
+                                        {/* Thumb indicator */}
                                         <div
                                             className="absolute block w-3 h-3 bg-white rounded-full shadow-md hover:bg-fuchsia-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 transform -translate-y-1/2 top-1/2"
                                             style={{ left: `calc(${progressPercentage}% - 6px)` }}
@@ -584,12 +613,12 @@ export default function MusicPlayer() {
                 <DialogContent className="bg-gradient-to-br from-gray-900 to-indigo-950 border border-fuchsia-500/30 text-white">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-                            Want to hear more?
+                            Want to hear the full track?
                         </DialogTitle>
                     </DialogHeader>
                     <div className="py-4">
                         <p className="text-cyan-300 mb-4">
-                            Sign in to listen to the full track, like it, and support the artist.
+                            You've reached the 30-second preview limit. Sign in to enjoy the complete track and support the artist.
                         </p>
                         <div className="grid grid-cols-2 gap-4 mt-2">
                             <img
@@ -602,6 +631,9 @@ export default function MusicPlayer() {
                                 <p className="text-sm text-cyan-300">{trackData.artist?.name}</p>
                                 <p className="text-xs text-gray-400 mt-2">
                                     Full track: {formatTime(duration || 0)}
+                                </p>
+                                <p className="text-xs text-red-400 mt-1">
+                                    You've heard: {formatTime(PREVIEW_LIMIT_SECONDS)} of {formatTime(duration || 0)}
                                 </p>
                             </div>
                         </div>
@@ -618,11 +650,27 @@ export default function MusicPlayer() {
                             onClick={() => router.push('/auth/login/email')}
                             className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
                         >
-                            Sign In
+                            Sign In to Listen
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {process.env.NODE_ENV === 'development' && (
+                <div className="fixed bottom-0 left-0 bg-black/80 text-white p-2 text-xs max-w-xs overflow-auto max-h-40">
+                    <h4>Debug Info:</h4>
+                    <pre>
+                        {JSON.stringify({
+                            isAuthenticated,
+                            currentTime,
+                            duration,
+                            isPlaying,
+                            showLoginPrompt,
+                            previewLimit: PREVIEW_LIMIT_SECONDS
+                        }, null, 2)}
+                    </pre>
+                </div>
+            )}
         </div>
     )
 }

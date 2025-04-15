@@ -462,7 +462,7 @@ export default function UserProfile() {
                                         key={track.id}
                                         className="group relative rounded-lg overflow-hidden aspect-square bg-indigo-900/30 border border-indigo-800/50 hover:border-cyan-500/50 transition-colors"
                                     >
-                                        <div className="relative aspect-square">
+                                        <div className="h-max relative aspect-square">
                                             <Image
                                                 src={track.artwork_url || "/placeholder.svg"}
                                                 alt={track.title}
