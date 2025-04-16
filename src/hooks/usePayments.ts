@@ -4,14 +4,14 @@ import { useAuthStore } from "@/store/authStore";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
-// Create payment intent
+// Create payment intent (now using checkout session)
 export const useCreatePaymentIntent = () => {
     const { token } = useAuthStore();
 
     return useMutation({
-        mutationFn: async ({ trackId, quantity = 1 }: { trackId: string, quantity?: number }) => {
+        mutationFn: async ({ trackId, quantity }: { trackId: string, quantity: number }) => {
             const response = await axios.post(
-                `${API_BASE_URL}/payments/create-payment-intent`,
+                `${API_BASE_URL}/payments/create-checkout-session`,
                 { track_id: trackId, quantity },
                 {
                     headers: {

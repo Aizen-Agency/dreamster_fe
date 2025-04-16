@@ -13,6 +13,7 @@ export default function PurchaseSuccess() {
     const searchParams = useSearchParams()
     const { isLoggedIn } = useAuthStore()
     const trackId = searchParams.get('track_id')
+    const paymentIntentId = searchParams.get('payment_intent')
 
     const { data: trackData } = trackId ? useTrackDetails(trackId) : { data: null }
     const { data: ownershipData, isLoading } = trackId ? useCheckTrackOwnership(trackId) : { data: null, isLoading: false }

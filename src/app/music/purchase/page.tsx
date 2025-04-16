@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Minus, Plus, Check, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useTrackDetails } from "@/hooks/useTrackExplorer"
 import { useCreatePaymentIntent } from "@/hooks/usePayments"
 import { useAuthStore } from "@/store/authStore"
+import { stripePromise } from "@/lib/stripe"
 
 const ApplePayIcon = () => <span>Apple Pay</span>
 
@@ -33,9 +34,15 @@ export default function TrackPurchase() {
     const incrementQuantity = () => setQuantity((prev) => prev + 1)
     const decrementQuantity = () => setQuantity((prev) => Math.max(1, prev - 1))
 
-    // Use track data from API if available, otherwise use URL params
     const title = trackData?.title || "Unknown Track"
     const artist = trackData?.artist?.name || "Unknown Artist"
+
+    useEffect(() => {
+        const canceled = searchParams.get('canceled')
+        if (canceled) {
+            setPurchaseError("Your payment was canceled. Please try again when you're ready.")
+        }
+    }, [searchParams])
 
     const handlePurchase = async () => {
         if (!trackId) {
@@ -44,7 +51,6 @@ export default function TrackPurchase() {
         }
 
         if (!isLoggedIn) {
-            // Redirect to login with return URL
             router.push(`/login?redirect=/music/purchase?id=${trackId}`)
             return
         }
@@ -53,14 +59,18 @@ export default function TrackPurchase() {
         setPurchaseError(null)
 
         try {
-            // Create payment intent
             const response = await createPaymentIntent.mutateAsync({
                 trackId,
                 quantity
             })
 
-            // Redirect to success page with track ID
-            router.push(`/music/purchase/success?track_id=${trackId}`)
+            const { sessionId, url } = response
+
+            if (url) {
+                window.location.href = url
+            } else {
+                throw new Error("No checkout URL returned")
+            }
         } catch (error) {
             console.error("Purchase error:", error)
             setPurchaseError("There was an error processing your purchase. Please try again.")
@@ -136,9 +146,10 @@ export default function TrackPurchase() {
                         <h3 className="font-semibold mb-3 text-fuchsia-300">Choose Payment Method</h3>
                         <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 gap-3">
                             {[
-                                { id: "apple-pay", label: "Apple Pay", icon: <ApplePayIcon /> },
-                                { id: "credit-card", label: "Credit Card (Visa)", icon: "💳" },
-                                { id: "crypto", label: "Crypto", icon: "₿" },
+                                // { id: "apple-pay", label: "Apple Pay", icon: <ApplePayIcon /> },
+                                // { id: "credit-card", label: "Credit Card (Visa)", icon: "💳" },
+                                // { id: "crypto", label: "Crypto", icon: "₿" },
+                                { id: "stripe", label: "Stripe", icon: "💳" }
                             ].map((method) => (
                                 <div
                                     key={method.id}
