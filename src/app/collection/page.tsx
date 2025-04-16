@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronRight, Heart, MoreHorizontal, Play, Pause, Share2, Plus, Compass } from "lucide-react"
+import { ChevronRight, Heart, MoreHorizontal, Play, Pause, Share2, Plus, Compass, Download } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useLikedTracks } from "@/hooks/useTrackExplorer"
+import { useUserLibrary } from "@/hooks/useUserLibrary"
 import { usePlayerStore } from "@/store/playerStore"
+import { useTrackLikes } from "@/hooks/useTrackExplorer"
 import { Track } from "@/types/track"
 import ProfileMenu from "@/components/ProfileMenu"
 
@@ -21,11 +22,8 @@ export default function MusicCollection() {
         setIsPlaying
     } = usePlayerStore()
 
-    // Fetch user's liked tracks
-    const { data: likedTracksData, isLoading, error } = useLikedTracks({
-        page: currentPage,
-        per_page: 12
-    })
+    // Fetch user's owned tracks
+    const { data: libraryData, isLoading, error } = useUserLibrary()
 
     // Handle play button click
     const handlePlayTrack = (track: Track) => {
@@ -80,7 +78,7 @@ export default function MusicCollection() {
                             My Collection
                         </h1>
 
-                        {/* Liked Tracks Section */}
+                        {/* Owned Tracks Section */}
                         <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.3)] border border-fuchsia-500/30 p-6 backdrop-blur-sm mb-8">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
@@ -99,68 +97,33 @@ export default function MusicCollection() {
                                 <div className="text-center text-red-400 py-8">
                                     Failed to load your collection. Please try again.
                                 </div>
-                            ) : !likedTracksData || likedTracksData.tracks.length === 0 ? (
+                            ) : !libraryData || libraryData.library.length === 0 ? (
                                 <div className="text-center text-cyan-300 py-8">
-                                    You haven't liked any tracks yet. Explore music and add tracks to your collection!
+                                    You haven't purchased any tracks yet. Explore music and add tracks to your collection!
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {/* {likedTracksData.tracks.map((track: Track) => (
-                                        <div key={track.id} className="bg-indigo-950/50 rounded-lg p-4 border border-indigo-800/30 hover:border-cyan-500/30 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-20 w-20 rounded bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)] flex-shrink-0">
-                                                    <div className="h-full w-full rounded overflow-hidden relative group">
-                                                        <Image
-                                                            src={track.artwork_url || "/placeholder.svg"}
-                                                            alt={track.title}
-                                                            width={80}
-                                                            height={80}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button
-                                                                className="h-12 w-12 rounded-full bg-cyan-500/80 flex items-center justify-center"
-                                                                onClick={() => handlePlayTrack(track)}
-                                                            >
-                                                                {currentTrack?.id === track.id && isPlaying ? (
-                                                                    <Pause className="h-6 w-6 text-white" />
-                                                                ) : (
-                                                                    <Play className="h-6 w-6 text-white ml-1" />
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-medium text-fuchsia-400 text-lg">{track.title}</h3>
-                                                    <p className="text-sm text-cyan-300/70 mb-2">{track.artist.name} • {track.genre || "No genre"}</p>
-                                                    <div className="flex items-center gap-3">
-                                                        <button className="p-2 rounded-full bg-indigo-900/50 hover:bg-indigo-800/50 transition-colors">
-                                                            <Heart className="h-5 w-5 text-fuchsia-400" fill="currentColor" />
-                                                        </button>
-                                                        <button className="p-2 rounded-full bg-indigo-900/50 hover:bg-indigo-800/50 transition-colors">
-                                                            <Share2 className="h-5 w-5 text-cyan-400" />
-                                                        </button>
-                                                        <button className="p-2 rounded-full bg-indigo-900/50 hover:bg-indigo-800/50 transition-colors">
-                                                            <MoreHorizontal className="h-5 w-5 text-cyan-400" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))} */}
+                                    {libraryData.library.map((track: Track) => (
+                                        <TrackItem
+                                            key={track.id}
+                                            track={track}
+                                            currentTrack={track}
+                                            isPlaying={isPlaying}
+                                            onPlay={handlePlayTrack}
+                                        />
+                                    ))}
                                 </div>
                             )}
 
-                            {/* Pagination */}
-                            {/* {likedTracksData && likedTracksData.pages > 1 && (
+                            {/* Pagination - if needed */}
+                            {libraryData && libraryData.count > 12 && (
                                 <div className="flex justify-center mt-8">
                                     <div className="flex space-x-2">
-                                        {Array.from({ length: likedTracksData.pages }, (_, i) => (
+                                        {Array.from({ length: Math.ceil(libraryData.count / 12) }, (_, i) => (
                                             <button
                                                 key={i}
                                                 onClick={() => setCurrentPage(i + 1)}
-                                                className={`w-8 h-8 rounded-full flex items-center justify-center ${likedTracksData.current_page === i + 1
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center ${currentPage === i + 1
                                                     ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
                                                     : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300"
                                                     }`}
@@ -170,7 +133,7 @@ export default function MusicCollection() {
                                         ))}
                                     </div>
                                 </div>
-                            )} */}
+                            )}
                         </div>
 
                         {/* Footer */}
@@ -185,5 +148,79 @@ export default function MusicCollection() {
 
         </div>
     )
+}
+
+// Track item component with like functionality
+const TrackItem = ({ track, currentTrack, isPlaying, onPlay }: { track: Track, currentTrack: Track, isPlaying: boolean, onPlay: (track: Track) => void }) => {
+    // Use the track likes hook for this specific track
+    const {
+        isLiked,
+        toggleLike,
+        isLiking,
+        isUnliking
+    } = useTrackLikes(track.id);
+
+    // Handle like button click
+    const handleLikeToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        toggleLike(track.id);
+    };
+
+    return (
+        <div className="bg-indigo-950/50 rounded-lg p-4 border border-indigo-800/30 hover:border-cyan-500/30 transition-all">
+            <div className="flex items-center gap-4">
+                <div className="h-20 w-20 rounded bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)] flex-shrink-0">
+                    <div className="h-full w-full rounded overflow-hidden relative group">
+                        <Image
+                            src={track.artwork_url || "/placeholder.svg"}
+                            alt={track.title}
+                            width={80}
+                            height={80}
+                            className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                className="h-12 w-12 rounded-full bg-cyan-500/80 flex items-center justify-center"
+                                onClick={() => onPlay(track)}
+                            >
+                                {currentTrack?.id === track.id && isPlaying ? (
+                                    <Pause className="h-6 w-6 text-white" />
+                                ) : (
+                                    <Play className="h-6 w-6 text-white ml-1" />
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <h3 className="font-medium text-fuchsia-400 text-lg">{track.title}</h3>
+                    <p className="text-sm text-cyan-300/70 mb-2">{track.artist.username} • {track.genre || "No genre"}</p>
+                    <div className="flex items-center gap-3">
+                        <button
+                            className="p-2 rounded-full bg-indigo-900/50 hover:bg-indigo-800/50 transition-colors"
+                            onClick={handleLikeToggle}
+                            disabled={isLiking || isUnliking}
+                        >
+                            <Heart
+                                className={`h-5 w-5 ${isLiked ? "text-fuchsia-400" : "text-cyan-400"}`}
+                                fill={isLiked ? "currentColor" : "none"}
+                            />
+                        </button>
+                        <button className="p-2 rounded-full bg-indigo-900/50 hover:bg-indigo-800/50 transition-colors">
+                            <Share2 className="h-5 w-5 text-cyan-400" />
+                        </button>
+                        {track.exclusive && (
+                            <button className="p-2 rounded-full bg-indigo-900/50 hover:bg-indigo-800/50 transition-colors">
+                                <Download className="h-5 w-5 text-cyan-400" />
+                            </button>
+                        )}
+                        <button className="p-2 rounded-full bg-indigo-900/50 hover:bg-indigo-800/50 transition-colors">
+                            <MoreHorizontal className="h-5 w-5 text-cyan-400" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
 
