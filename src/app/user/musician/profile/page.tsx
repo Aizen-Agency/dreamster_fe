@@ -20,6 +20,7 @@ import {
     X,
     FileMusic,
     ImageIcon,
+    CheckCircle,
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -29,6 +30,7 @@ import { usePlayerStore } from "@/store/playerStore"
 import { Track } from "@/types/track"
 import { useUserProfile } from "@/hooks/useProfile"
 import { useSetUserRole } from "@/hooks/useAuth"
+import { useRecordTrackShare } from "@/hooks/useSharedTrack"
 
 type UserRole = "musician" | "fan" | "admin"
 
@@ -49,6 +51,12 @@ export default function UserProfile() {
     const [searchQuery, setSearchQuery] = useState("")
     const [showAddAssetModal, setShowAddAssetModal] = useState(false)
     const [isPlaying, setIsPlaying] = useState<string | null>(null)
+    // Add state for share notification
+    const [shareNotification, setShareNotification] = useState<{ visible: boolean, trackTitle: string }>({
+        visible: false,
+        trackTitle: ""
+    })
+
     // Get user ID from auth store
     const userId = useAuthStore(state => state.user?.id)
     const { data: userData, isLoading: userLoading, error: userError } = useUserProfile()
@@ -63,10 +71,43 @@ export default function UserProfile() {
         }
     )
 
+    // Get the share track mutation
+    const { mutate: recordTrackShare } = useRecordTrackShare();
+
     // Filter tracks based on search query
     const filteredTracks = artistTracksData?.tracks.filter(track =>
         track.title.toLowerCase().includes(searchQuery.toLowerCase())
     ) || []
+
+    const handleShareTrack = (track: Track): void => {
+        // Create the shareable URL for the track
+        const shareUrl = `${window.location.origin}/music/share/player/${track.id}`;
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                // Show success notification
+                setShareNotification({
+                    visible: true,
+                    trackTitle: track.title
+                });
+
+                // Hide notification after 3 seconds
+                setTimeout(() => {
+                    setShareNotification({ visible: false, trackTitle: "" });
+                }, 3000);
+
+                // Record the share event
+                try {
+                    recordTrackShare({ trackId: track.id, platform: "link" });
+                } catch (error) {
+                    console.error("Failed to record share event:", error);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to copy:", err);
+            });
+    }
 
     // Handle play button click
     const handlePlayTrack = (track: Track) => {
@@ -211,6 +252,23 @@ export default function UserProfile() {
 
             {/* Sun/horizon glow */}
             <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-fuchsia-600 to-transparent opacity-20" />
+
+            {/* Share notification popup */}
+            {shareNotification.visible && (
+                <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white px-4 py-3 rounded-md shadow-lg flex items-center gap-3 max-w-md animate-fade-in">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                    <div className="flex-1">
+                        <p className="font-medium">Link copied!</p>
+                        <p className="text-sm opacity-90">Share link for "{shareNotification.trackTitle}" has been copied to clipboard</p>
+                    </div>
+                    <button
+                        onClick={() => setShareNotification({ visible: false, trackTitle: "" })}
+                        className="p-1 hover:bg-white/20 rounded-full"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
 
             {/* Main content */}
             <div className="relative z-10 max-w-7xl mx-auto">
@@ -460,7 +518,7 @@ export default function UserProfile() {
                                 filteredTracks.map((track) => (
                                     <div
                                         key={track.id}
-                                        className="group relative rounded-lg overflow-hidden aspect-square bg-indigo-900/30 border border-indigo-800/50 hover:border-cyan-500/50 transition-colors"
+                                        className="group relative rounded-lg aspect-square bg-indigo-900/30 border border-indigo-800/50 hover:border-cyan-500/50 transition-colors"
                                     >
                                         <div className="h-max relative aspect-square">
                                             <Image
@@ -496,6 +554,29 @@ export default function UserProfile() {
                                                 </div>
                                                 <div className="text-xs text-cyan-300/70">
                                                     {track.stream_count || 0} plays
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center mt-3">
+                                                <button
+                                                    className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300"
+                                                    onClick={() => handlePlayTrack(track)}
+                                                >
+                                                    {currentTrack?.id === track.id && playerIsPlaying ? (
+                                                        <Pause className="h-4 w-4" />
+                                                    ) : (
+                                                        <Play className="h-4 w-4" />
+                                                    )}
+                                                </button>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
+                                                        <Download className="h-4 w-4" />
+                                                    </button>
+                                                    <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
+                                                        <Share2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -578,7 +659,7 @@ export default function UserProfile() {
                                                     <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
                                                         <Download className="h-5 w-5" />
                                                     </button>
-                                                    <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
+                                                    <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <Share2 className="h-5 w-5" />
                                                     </button>
                                                     <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
