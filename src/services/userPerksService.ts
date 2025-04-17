@@ -7,6 +7,7 @@ export interface UserPerk {
     category: string;
     perk_type: "text" | "url" | "file" | "audio" | "image" | "video";
     s3_url?: string;
+    artwork_url?: string;
     track_id: string;
     track_title: string;
     artist_id: string;
@@ -20,6 +21,8 @@ export interface PerkDownloadResponse {
     download_url?: string;
     perk_type: "text" | "url" | "file" | "audio" | "image" | "video";
     expires_in?: number;
+    filename?: string;
+    file_extension?: string;
 }
 
 export const userPerksService = {

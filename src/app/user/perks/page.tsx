@@ -36,10 +36,6 @@ export default function MemberPerks() {
         type: "success"
     })
 
-    // Fetch all perks
-    const { data: allPerks, isLoading, error } = useAllPerks()
-
-    // Fetch perks by category based on active tab
     const getCategoryFromTab = (tab: string) => {
         switch (tab) {
             case "tracks": return "exclusive"
@@ -50,7 +46,8 @@ export default function MemberPerks() {
         }
     }
 
-    const { data: categoryPerks } = usePerksByCategory(getCategoryFromTab(activeTab))
+    // Add loading and error states from the query
+    const { data: categoryPerks, isLoading, error } = usePerksByCategory(getCategoryFromTab(activeTab))
 
     // Download perk mutation
     const downloadPerkMutation = useDownloadPerk()
@@ -70,25 +67,50 @@ export default function MemberPerks() {
     const handleDownload = async (perkId: string) => {
         try {
             const response = await downloadPerkMutation.mutateAsync(perkId)
+            console.log(response)
 
-            if (response.perk_type === 'text' || response.perk_type === 'url') {
-                // Handle text or URL content
-                if (response.content) {
-                    if (response.perk_type === 'url') {
-                        window.open(response.content, '_blank')
-                    } else {
-                        // Display text content in a notification
+            if (response.download_url) {
+                // Show loading notification
+                setNotification({
+                    visible: true,
+                    title: "Starting Download",
+                    message: "Preparing your download...",
+                    type: "success"
+                })
+
+                // Fetch the file content
+                fetch(response.download_url)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        // Create a blob URL
+                        const url = window.URL.createObjectURL(blob)
+                        const link = document.createElement('a')
+                        link.href = url
+                        link.setAttribute('download', `${response.filename}${response.file_extension}`)
+                        document.body.appendChild(link)
+                        link.click()
+
+                        // Clean up
+                        link.parentNode?.removeChild(link)
+                        window.URL.revokeObjectURL(url)
+
+                        // Update notification
                         setNotification({
                             visible: true,
-                            title: "Perk Content",
-                            message: response.content,
+                            title: "Download Complete",
+                            message: "Your file has been downloaded successfully.",
                             type: "success"
                         })
-                    }
-                }
-            } else if (response.download_url) {
-                // Handle file download
-                window.open(response.download_url, '_blank')
+                    })
+                    .catch(err => {
+                        console.error("Download error:", err)
+                        setNotification({
+                            visible: true,
+                            title: "Download Failed",
+                            message: "There was an error downloading this file.",
+                            type: "error"
+                        })
+                    })
             }
         } catch (error) {
             setNotification({
@@ -103,27 +125,18 @@ export default function MemberPerks() {
     // Map API perks to UI components
     const mapPerksToTracks = (perks: UserPerk[] = []) => {
         return perks
-            .filter(perk => perk.category === 'exclusive' && perk.perk_type === 'audio')
+            .filter(perk => perk.category === 'exclusive')
             .map(perk => ({
                 id: perk.id,
                 title: perk.title,
                 artist: perk.artist_name,
                 duration: "3:45", // This would ideally come from metadata
-                image: perk.s3_url || "/placeholder.svg?height=60&width=60",
+                image: perk.artwork_url,
             }))
     }
 
+    const tracks = activeTab === "tracks" ? mapPerksToTracks(categoryPerks) : [];
     // Use real data or fallback to mock data
-    const tracks = allPerks ? mapPerksToTracks(allPerks) : [
-        {
-            id: 1,
-            title: "Neon Dreams",
-            artist: "RetroWave",
-            duration: "3:45",
-            image: "/placeholder.svg?height=60&width=60",
-        },
-        // ... other mock tracks
-    ]
 
     const videos = [
         {
@@ -167,8 +180,8 @@ export default function MemberPerks() {
             {/* Notification popup */}
             {notification.visible && (
                 <div className={`fixed top-4 right-4 z-50 ${notification.type === 'success'
-                        ? 'bg-gradient-to-r from-cyan-500 to-fuchsia-500'
-                        : 'bg-gradient-to-r from-red-500 to-orange-500'
+                    ? 'bg-gradient-to-r from-cyan-500 to-fuchsia-500'
+                    : 'bg-gradient-to-r from-red-500 to-orange-500'
                     } text-white px-4 py-3 rounded-md shadow-lg flex items-center gap-3 max-w-md animate-fade-in`}>
                     {notification.type === 'success'
                         ? <CheckCircle className="h-5 w-5 text-white" />
