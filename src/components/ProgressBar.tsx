@@ -101,4 +101,6 @@ const ProgressBar = memo(({
     );
 });
 
+ProgressBar.displayName = 'ProgressBar';
+
 export default ProgressBar;
