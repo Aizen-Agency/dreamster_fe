@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Share2, Download, ShoppingCart } from "lucide-react"
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Share2, Download, ShoppingCart, Check } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { usePlayerStore } from "@/store/playerStore"
@@ -11,17 +11,22 @@ import { Button } from "@/components/ui/button"
 import * as Slider from "@radix-ui/react-slider"
 // import { toast } from "@/components/ui/use-toast"
 import { useAuthStore } from "@/store/authStore"
+import { useCheckTrackOwnership } from "@/hooks/usePayments"
+import ProgressBar from "@/components/ProgressBar"
 
 export default function MusicPlayer() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const trackId = searchParams.get('id')
+    const positionParam = searchParams.get('position')
+    const initialPosition = positionParam ? parseFloat(positionParam) : 0
     const audioRef = useRef<HTMLAudioElement>(null)
     const isAuthenticated = useAuthStore(state => !!state.token)
 
     // Fetch track details and stream URL
     const { data: trackData, isLoading: isLoadingTrack } = useTrackDetails(trackId)
     const { data: streamData, isLoading: isLoadingStream } = useTrackStream(trackId)
+    const { data: ownershipData, isLoading: isCheckingOwnership } = trackId ? useCheckTrackOwnership(trackId) : { data: null, isLoading: false }
 
     // Get like functionality
     const {
@@ -58,7 +63,7 @@ export default function MusicPlayer() {
             setCurrentTrack(trackData)
             setIsPlaying(false)
         }
-    }, [trackData, currentTrack, setCurrentTrack, setIsPlaying])
+    }, [trackData, currentTrack, setCurrentTrack])
 
     // Set stream URL when available
     useEffect(() => {
@@ -79,24 +84,46 @@ export default function MusicPlayer() {
             // Set isPlaying after updating the time to prevent re-render issues
             setIsPlaying(false);
         } else {
-            // Check if we have a stream URL before attempting to play
+            if (!audioRef.current) return;
+
             if (!streamData?.stream_url) {
                 console.error("No stream URL available");
                 return;
             }
 
-            // Ensure audio has a source
-            if (!audioRef.current.src) {
+            // Only set the source if it's not already set or has changed
+            if (!audioRef.current.src || audioRef.current.src !== streamData.stream_url) {
                 audioRef.current.src = streamData.stream_url;
                 audioRef.current.load();
-            }
 
-            // If we're resuming from a position, don't reset it
-            // Only attempt to play
-            audioRef.current.play().catch(err => {
-                console.error("Playback failed:", err);
-                setIsPlaying(false);
-            });
+                // Wait for canplaythrough event before playing
+                const canPlayHandler = () => {
+                    if (!audioRef.current) return;
+
+                    if (lastKnownPositionRef.current > 0 && audioRef.current) {
+                        audioRef.current.currentTime = lastKnownPositionRef.current;
+                    }
+
+                    audioRef.current.play().catch(err => {
+                        console.error("Playback failed:", err);
+                        setIsPlaying(false);
+                    });
+
+                    audioRef.current.removeEventListener('canplaythrough', canPlayHandler);
+                };
+
+                audioRef.current.addEventListener('canplaythrough', canPlayHandler);
+            } else {
+                // Source is already set, just resume playback
+                if (lastKnownPositionRef.current > 0) {
+                    audioRef.current.currentTime = lastKnownPositionRef.current;
+                }
+
+                audioRef.current.play().catch(err => {
+                    console.error("Playback failed:", err);
+                    setIsPlaying(false);
+                });
+            }
 
             setIsPlaying(true);
         }
@@ -164,8 +191,12 @@ export default function MusicPlayer() {
 
     // Handle purchase function - wrap in useCallback
     const handlePurchase = useCallback(() => {
-        router.push(`/music/purchase?id=${trackId}`)
-    }, [router, trackId]);
+        if (ownershipData?.owns) {
+            // If already owned, maybe navigate to library or do nothing
+            return;
+        }
+        router.push(`/music/purchase?id=${trackId}`);
+    }, [router, trackId, ownershipData?.owns]);
 
     useEffect(() => {
         const audio = audioRef.current
@@ -231,54 +262,52 @@ export default function MusicPlayer() {
             audio.removeEventListener("progress", handleProgress)
             audio.removeEventListener("canplaythrough", handleCanPlayThrough)
         }
-    }, [setCurrentTime, setDuration, setIsPlaying, setLoadingProgress, isPlaying]);
+    }, [setCurrentTime, setDuration, setLoadingProgress]);
 
-    // Set audio source when stream URL changes
+    // Modify the effect that sets the audio source
     useEffect(() => {
-        if (audioRef.current && streamData?.stream_url) {
-            // Reset states when source changes
-            setCurrentTime(0)
-            setLoadingProgress(0)
-            setIsBuffering(true)
-            setIsAudioReady(false)
+        if (!audioRef.current || !streamData?.stream_url) return;
 
-            // Set the source
-            audioRef.current.src = streamData.stream_url
-            audioRef.current.load()
+        // Only set the source if it's different from the current one
+        if (audioRef.current.src !== streamData.stream_url) {
+            // Pause first to avoid conflicts
+            audioRef.current.pause();
 
-            // Force the audio to load and calculate duration without playing
-            const handleLoadedMetadata = () => {
-                if (audioRef.current && audioRef.current.duration && !isNaN(audioRef.current.duration)) {
-                    setDuration(audioRef.current.duration)
-                    console.log("Duration set from loadedmetadata:", audioRef.current.duration)
-                    setIsAudioReady(true)
-                    setIsBuffering(false)
+            // Store the current position before changing source
+            const wasPlaying = isPlaying;
+            const currentPosition = audioRef.current.currentTime;
+
+            // Set new source
+            audioRef.current.src = streamData.stream_url;
+            audioRef.current.load();
+
+            // Set up a one-time event listener for metadata loading
+            const handleMetadataLoaded = () => {
+                if (audioRef.current) {
+                    setDuration(audioRef.current.duration);
+                    setIsAudioReady(true);
+
+                    // Restore position
+                    if (currentPosition > 0) {
+                        audioRef.current.currentTime = currentPosition;
+                        lastKnownPositionRef.current = currentPosition;
+                    }
+
+                    // Resume playback if it was playing before
+                    if (wasPlaying) {
+                        audioRef.current.play().catch(err => {
+                            console.error("Failed to resume after source change:", err);
+                            setIsPlaying(false);
+                        });
+                    }
+
+                    audioRef.current.removeEventListener('loadedmetadata', handleMetadataLoaded);
                 }
-            }
+            };
 
-            // Use the canplaythrough event only for play state management
-            const handleCanPlayThrough = () => {
-                setIsAudioReady(true)
-                setIsBuffering(false)
-
-                // Only play if isPlaying is true (which should be false by default)
-                if (isPlaying) {
-                    audioRef.current?.play().catch(err => {
-                        console.error("Playback failed:", err)
-                        setIsPlaying(false)
-                    })
-                }
-            }
-
-            audioRef.current.addEventListener("loadedmetadata", handleLoadedMetadata)
-            audioRef.current.addEventListener("canplaythrough", handleCanPlayThrough)
-
-            return () => {
-                audioRef.current?.removeEventListener("loadedmetadata", handleLoadedMetadata)
-                audioRef.current?.removeEventListener("canplaythrough", handleCanPlayThrough)
-            }
+            audioRef.current.addEventListener('loadedmetadata', handleMetadataLoaded);
         }
-    }, [streamData, setIsPlaying, setCurrentTime, setDuration, isPlaying])
+    }, [streamData, isPlaying, setDuration, setIsAudioReady, setIsPlaying]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -297,19 +326,64 @@ export default function MusicPlayer() {
         };
     }, [setIsPlaying]);
 
+    // Modify the effect that responds to isPlaying changes
     useEffect(() => {
         if (!audioRef.current) return;
 
+        // Create a flag to track if we're in the middle of a load operation
+        let isLoading = false;
+
         if (isPlaying) {
-            audioRef.current.play().catch(err => {
-                console.error("Playback failed:", err);
-                setIsPlaying(false);
-            });
+            // Only set src if it's not already set or has changed
+            if (!audioRef.current.src && streamData?.stream_url) {
+                isLoading = true;
+                audioRef.current.src = streamData.stream_url;
+                audioRef.current.load();
+
+                // Use a one-time event listener for canplaythrough
+                const handleCanPlay = () => {
+                    isLoading = false;
+
+                    // Set the position before playing
+                    if (lastKnownPositionRef.current > 0 && audioRef.current) {
+                        audioRef.current.currentTime = lastKnownPositionRef.current;
+                    }
+
+                    // Only play if we're still supposed to be playing
+                    if (isPlaying) {
+                        if (audioRef.current) {
+                            audioRef.current.play().catch(err => {
+                                console.error("Playback failed in effect:", err);
+                                setIsPlaying(false);
+                            });
+                        }
+                    }
+
+                    if (audioRef.current) {
+                        audioRef.current.removeEventListener('canplaythrough', handleCanPlay);
+                    }
+                };
+
+                audioRef.current.addEventListener('canplaythrough', handleCanPlay);
+            } else if (!isLoading) {
+                // If we already have a source and we're not loading, just play
+                if (lastKnownPositionRef.current > 0) {
+                    audioRef.current.currentTime = lastKnownPositionRef.current;
+                }
+
+                audioRef.current.play().catch(err => {
+                    console.error("Playback failed in effect:", err);
+                    setIsPlaying(false);
+                });
+            }
         } else {
+            // When pausing, always store the current position
+            if (audioRef.current.currentTime > 0) {
+                lastKnownPositionRef.current = audioRef.current.currentTime;
+            }
             audioRef.current.pause();
-            // Don't update currentTime here as it can cause a race condition
         }
-    }, [isPlaying, setIsPlaying]);
+    }, [isPlaying, setIsPlaying, streamData]);
 
     // Modify the continuous update effect (around line 303)
     useEffect(() => {
@@ -361,6 +435,49 @@ export default function MusicPlayer() {
             duration
         });
     }, [isPlaying, isBuffering, isAudioReady, streamData, currentTrack, duration]);
+
+    // Add this effect to handle audio initialization and cleanup
+    useEffect(() => {
+        if (!audioRef.current) return;
+
+        const audio = audioRef.current;
+
+        // Set the initial position from URL parameter
+        if (initialPosition > 0) {
+            audio.currentTime = initialPosition;
+            setCurrentTime(initialPosition);
+        }
+
+        // Set up event handlers
+        const handleLoadedMetadata = () => {
+            console.log("Metadata loaded, duration:", audio.duration);
+            if (audio.duration && !isNaN(audio.duration)) {
+                setDuration(audio.duration);
+                setIsAudioReady(true);
+
+                // If we have a stored position, restore it
+                if (lastKnownPositionRef.current > 0) {
+                    audio.currentTime = lastKnownPositionRef.current;
+                }
+            }
+        };
+
+        // Add event listeners
+        audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+        return () => {
+            audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        };
+    }, [setDuration, initialPosition]);
+
+    useEffect(() => {
+        return () => {
+            if (audioRef.current && audioRef.current.currentTime > 0) {
+                setCurrentTime(audioRef.current.currentTime);
+                lastKnownPositionRef.current = audioRef.current.currentTime;
+            }
+        };
+    }, [setCurrentTime]);
 
     if (isLoadingTrack || isLoadingStream) {
         return (
@@ -442,40 +559,16 @@ export default function MusicPlayer() {
                                         </span>
                                     </div>
                                 </button>
-                                <div className="flex items-center gap-4 mb-4">
-                                    <span className="text-sm text-cyan-300 min-w-[40px]">
-                                        {formatTime(currentTime)}
-                                    </span>
-
-                                    <div
-                                        className="relative flex-1 h-5 flex items-center cursor-pointer"
-                                        onClick={handleProgressBarClick}
-                                    >
-                                        <div className="bg-fuchsia-900 relative grow rounded-full h-1 w-full">
-                                            <div
-                                                className="absolute bg-fuchsia-700/50 rounded-full h-full"
-                                                style={{ width: `${loadingProgress}%` }}
-                                            />
-                                            <div
-                                                className="absolute bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-full h-full"
-                                                style={{
-                                                    width: `${progressPercentage}%`,
-                                                    transition: isPlaying ? 'width 0.1s linear' : 'none' // Only animate when playing
-                                                }}
-                                            />
-                                            {isAudioReady && (
-                                                <div
-                                                    className="absolute block w-3 h-3 bg-white rounded-full shadow-md hover:bg-fuchsia-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 transform -translate-y-1/2 top-1/2"
-                                                    style={{ left: `calc(${progressPercentage}% - 6px)` }}
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <span className="text-xs text-cyan-300 w-10">
-                                        {formatTime(duration || 0)}
-                                    </span>
-                                </div>
+                                <ProgressBar
+                                    currentTime={currentTime}
+                                    duration={duration}
+                                    loadingProgress={loadingProgress}
+                                    progressPercentage={progressPercentage}
+                                    isPlaying={isPlaying}
+                                    isAudioReady={isAudioReady}
+                                    onProgressBarClick={handleProgressBarClick}
+                                    key={`progress-${trackId}`}
+                                />
 
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
@@ -523,10 +616,25 @@ export default function MusicPlayer() {
                                 <span className="text-fuchsia-300 font-bold text-lg">${currentTrack.starting_price?.toFixed(2) || "1.99"}</span>
                                 <Button
                                     onClick={handlePurchase}
-                                    className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white py-2 px-4 rounded-full font-bold flex items-center text-sm"
+                                    className={`bg-gradient-to-r ${ownershipData?.owns
+                                        ? "from-green-500 to-emerald-500"
+                                        : "from-cyan-500 to-fuchsia-500"
+                                        } text-white py-2 px-4 rounded-full font-bold flex items-center text-sm`}
+                                    disabled={ownershipData?.owns || isCheckingOwnership}
                                 >
-                                    <ShoppingCart size={16} className="mr-2" />
-                                    Purchase
+                                    {isCheckingOwnership ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                    ) : ownershipData?.owns ? (
+                                        <>
+                                            <Check size={16} className="mr-2" />
+                                            Purchased
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShoppingCart size={16} className="mr-2" />
+                                            Purchase
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>

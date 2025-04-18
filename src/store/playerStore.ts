@@ -9,6 +9,7 @@ interface PlayerState {
     duration: number;
     streamUrl: string | null;
     queue: Track[];
+    lastPositions: Record<string, number>;
 
     // Actions
     setCurrentTrack: (track: Track | null) => void;
@@ -22,6 +23,8 @@ interface PlayerState {
     clearQueue: () => void;
     playNext: () => void;
     playPrevious: () => void;
+    setLastPosition: (trackId: string, position: number) => void;
+    getLastPosition: (trackId: string) => number;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -32,6 +35,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     duration: 0,
     streamUrl: null,
     queue: [],
+    lastPositions: {},
 
     setCurrentTrack: (track) => set({ currentTrack: track }),
     setIsPlaying: (isPlaying) => set({ isPlaying }),
@@ -68,5 +72,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         if (currentIndex <= 0) return;
 
         set({ currentTrack: queue[currentIndex - 1] });
+    },
+
+    setLastPosition: (trackId, position) => set((state) => ({
+        lastPositions: { ...state.lastPositions, [trackId]: position }
+    })),
+
+    getLastPosition: (trackId) => {
+        const { lastPositions } = get();
+        return lastPositions[trackId] || 0;
     },
 })); 
