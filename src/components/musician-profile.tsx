@@ -20,7 +20,7 @@ export default function MusicianProfile({ artistId }: { artistId: string }) {
                 image: musicianData.avatar || "/placeholder.svg?height=400&width=400&text=Artist",
                 bio: musicianData.bio || "No biography available for this artist.",
                 established: new Date(musicianData.created_at).getFullYear().toString() || "Unknown",
-                profileUrl: `/user/musician/${musicianData.id}` || "#",
+                profileUrl: `https://${process.env.NEXT_PUBLIC_APP_URL}/share/musician/${musicianData.id}` || "#",
             })
         }
     }, [musicianData])

@@ -20,6 +20,7 @@ import {
     X,
     FileMusic,
     ImageIcon,
+    CheckCircle,
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useParams } from "next/navigation"
@@ -30,6 +31,7 @@ import { Track } from "@/types/track"
 import { useUserProfile } from "@/hooks/useProfile"
 import { useSetUserRole } from "@/hooks/useAuth"
 import { useMusician } from "@/hooks/useMusician"
+import { useRecordTrackShare } from "@/hooks/useSharedTrack"
 
 type UserRole = "musician" | "fan" | "admin"
 
@@ -199,6 +201,46 @@ export default function UserProfile() {
         }
     }
 
+    // Add the share track mutation
+    const { mutate: recordTrackShare } = useRecordTrackShare();
+
+    // Add state for share notification
+    const [shareNotification, setShareNotification] = useState<{ visible: boolean, trackTitle: string }>({
+        visible: false,
+        trackTitle: ""
+    });
+
+    // Add handleShareTrack function
+    const handleShareTrack = (track: Track): void => {
+        // Create the shareable URL for the track
+        const shareUrl = `${window.location.origin}/music/share/player/${track.id}`;
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                // Show success notification
+                setShareNotification({
+                    visible: true,
+                    trackTitle: track.title
+                });
+
+                // Hide notification after 3 seconds
+                setTimeout(() => {
+                    setShareNotification({ visible: false, trackTitle: "" });
+                }, 3000);
+
+                // Record the share event
+                try {
+                    recordTrackShare({ trackId: track.id, platform: "link" });
+                } catch (error) {
+                    console.error("Failed to record share event:", error);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to copy:", err);
+            });
+    }
+
     if (musicianLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black p-4 md:p-8 flex items-center justify-center">
@@ -226,6 +268,23 @@ export default function UserProfile() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black p-4 md:p-8 relative overflow-hidden">
+            {/* Share notification popup */}
+            {shareNotification.visible && (
+                <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white px-4 py-3 rounded-md shadow-lg flex items-center gap-3 max-w-md animate-fade-in">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                    <div className="flex-1">
+                        <p className="font-medium">Link copied!</p>
+                        <p className="text-sm opacity-90">Share link for "{shareNotification.trackTitle}" has been copied to clipboard</p>
+                    </div>
+                    <button
+                        onClick={() => setShareNotification({ visible: false, trackTitle: "" })}
+                        className="p-1 hover:bg-white/20 rounded-full"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+
             {/* Grid background */}
             <div
                 className="fixed inset-0 opacity-20"
@@ -602,7 +661,7 @@ export default function UserProfile() {
                                                     <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
                                                         <Download className="h-5 w-5" />
                                                     </button>
-                                                    <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
+                                                    <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <Share2 className="h-5 w-5" />
                                                     </button>
                                                     <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">

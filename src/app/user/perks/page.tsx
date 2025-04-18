@@ -130,7 +130,7 @@ export default function MemberPerks() {
                 id: perk.id,
                 title: perk.title,
                 artist: perk.artist_name,
-                duration: "3:45", // This would ideally come from metadata
+                duration: "3:45",
                 image: perk.artwork_url,
             }))
     }

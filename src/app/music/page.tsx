@@ -19,12 +19,16 @@ import {
     Sparkles,
     ChevronRight,
     MoreHorizontal,
+    CheckCircle,
+    X,
+    Share2,
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useTracksList, useTrackLikes } from "@/hooks/useTrackExplorer"
 import { usePlayerStore } from "@/store/playerStore"
 import { Track } from "@/types/track"
+import { useRecordTrackShare } from "@/hooks/useSharedTrack"
 
 export default function BrowseMusic() {
     const router = useRouter()
@@ -58,6 +62,46 @@ export default function BrowseMusic() {
 
     // Track likes functionality
     const { likeTrack, unlikeTrack } = useTrackLikes()
+
+    // Add the share track mutation
+    const { mutate: recordTrackShare } = useRecordTrackShare()
+
+    // Add state for share notification
+    const [shareNotification, setShareNotification] = useState<{ visible: boolean, trackTitle: string }>({
+        visible: false,
+        trackTitle: ""
+    })
+
+    // Add handleShareTrack function
+    const handleShareTrack = (track: Track): void => {
+        // Create the shareable URL for the track
+        const shareUrl = `${window.location.origin}/music/share/player/${track.id}`
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                // Show success notification
+                setShareNotification({
+                    visible: true,
+                    trackTitle: track.title
+                })
+
+                // Hide notification after 3 seconds
+                setTimeout(() => {
+                    setShareNotification({ visible: false, trackTitle: "" })
+                }, 3000)
+
+                // Record the share event
+                try {
+                    recordTrackShare({ trackId: track.id, platform: "link" })
+                } catch (error) {
+                    console.error("Failed to record share event:", error)
+                }
+            })
+            .catch(err => {
+                console.error("Failed to copy:", err)
+            })
+    }
 
     // Handle play button click
     const handlePlayTrack = (track: Track) => {
@@ -260,107 +304,6 @@ export default function BrowseMusic() {
                         </button>
                     </div>
                 </div>
-
-                {/* Tracks Grid */}
-                <div className="mb-16">
-                    {/* <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-                            {activeGenre === 'all' ? 'ALL TRACKS' : genres.find(g => g.id === activeGenre)?.name.toUpperCase()}
-                        </h2>
-                        <button className="flex items-center text-sm text-cyan-300 hover:text-fuchsia-400 transition-colors">
-                            View All <ChevronRight className="h-4 w-4 ml-1" />
-                        </button>
-                    </div>
-
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-fuchsia-500"></div>
-                        </div>
-                    ) : error ? (
-                        <div className="text-center text-red-400 py-8">
-                            Failed to load tracks. Please try again.
-                        </div>
-                    ) : filteredTracks.length === 0 ? (
-                        <div className="text-center text-cyan-300 py-8">
-                            No tracks found. Try a different search or genre.
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                            {filteredTracks.map((track) => (
-                                <div key={track.id} className="group relative rounded-lg overflow-hidden aspect-square">
-                                    <div className="relative aspect-square">
-                                        <Image
-                                            src={track.artwork_url || "/placeholder.svg"}
-                                            alt={track.title}
-                                            width={300}
-                                            height={300}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-indigo-950 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <button
-                                                onClick={() => handlePlayTrack(track)}
-                                                className="p-4 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_15px_rgba(232,121,249,0.7)] transform scale-0 group-hover:scale-100 transition-transform"
-                                            >
-                                                {currentTrack?.id === track.id && isPlaying ? (
-                                                    <Pause className="h-6 w-6" />
-                                                ) : (
-                                                    <Play className="h-6 w-6" />
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="p-3 bg-indigo-950/80 backdrop-blur-sm">
-                                        <h3 className="font-medium text-fuchsia-400 truncate">{track.title}</h3>
-                                        <p className="text-sm text-cyan-300 truncate">{track.artist.name}</p>
-                                        <div className="flex justify-between items-center mt-2">
-                                            <button
-                                                onClick={() => handlePlayTrack(track)}
-                                                className="p-2 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)]"
-                                            >
-                                                {currentTrack?.id === track.id && isPlaying ? (
-                                                    <Pause className="h-4 w-4" />
-                                                ) : (
-                                                    <Play className="h-4 w-4" />
-                                                )}
-                                            </button>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => likeTrack(track.id)}
-                                                    className="p-2 rounded-full bg-indigo-900/70 text-cyan-300 hover:text-cyan-100"
-                                                >
-                                                    <Heart className="h-4 w-4" fill={track.likes ? "currentColor" : "none"} />
-                                                </button>
-                                                <button className="p-2 rounded-full bg-indigo-900/70 text-cyan-300 hover:text-cyan-100">
-                                                    <Plus className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )} */}
-
-                    {/* Pagination */}
-                    {tracksData && tracksData.pages > 1 && (
-                        <div className="flex justify-center mt-8">
-                            <div className="flex space-x-2">
-                                {Array.from({ length: tracksData.pages }, (_, i) => (
-                                    <button
-                                        key={i}
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center ${tracksData.current_page === i + 1
-                                            ? "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
-                                            : "bg-indigo-950/50 border border-fuchsia-500/30 text-cyan-300"
-                                            }`}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
                 {/* New Releases Section */}
                 <div className="mb-24">
                     <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.3)] border border-fuchsia-500/30 p-6 backdrop-blur-sm">
@@ -428,8 +371,11 @@ export default function BrowseMusic() {
                                                     >
                                                         <Heart className="h-4 w-4" fill={track.likes ? "currentColor" : "none"} />
                                                     </button>
-                                                    <button className="p-2 rounded-full bg-indigo-900/70 text-cyan-300 hover:text-cyan-100">
-                                                        <Plus className="h-4 w-4" />
+                                                    <button
+                                                        className="p-2 rounded-full bg-indigo-900/70 text-cyan-300 hover:text-cyan-100"
+                                                        onClick={() => handleShareTrack(track)}
+                                                    >
+                                                        <Share2 className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -549,6 +495,23 @@ export default function BrowseMusic() {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Share notification popup */}
+            {shareNotification.visible && (
+                <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white px-4 py-3 rounded-md shadow-lg flex items-center gap-3 max-w-md animate-fade-in">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                    <div className="flex-1">
+                        <p className="font-medium">Link copied!</p>
+                        <p className="text-sm opacity-90">Share link for "{shareNotification.trackTitle}" has been copied to clipboard</p>
+                    </div>
+                    <button
+                        onClick={() => setShareNotification({ visible: false, trackTitle: "" })}
+                        className="p-1 hover:bg-white/20 rounded-full"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
                 </div>
             )}
         </div>

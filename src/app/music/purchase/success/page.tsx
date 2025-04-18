@@ -104,6 +104,7 @@ export default function PurchaseSuccess() {
 
                     {trackData?.exclusive && (
                         <Button
+                            onClick={() => router.push(`/user/perks`)}
                             variant="outline"
                             className="w-full border-fuchsia-500 text-fuchsia-500 hover:bg-fuchsia-950/50 flex items-center justify-center"
                         >
