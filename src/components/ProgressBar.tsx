@@ -1,4 +1,4 @@
-import React from "react";
+import { memo, useRef, useEffect } from "react";
 
 interface ProgressBarProps {
     currentTime: number;
@@ -11,7 +11,7 @@ interface ProgressBarProps {
     onProgressBarClick: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-const ProgressBar = React.memo(({
+const ProgressBar = memo(({
     currentTime,
     duration,
     loadingProgress,
@@ -21,12 +21,12 @@ const ProgressBar = React.memo(({
     key,
     onProgressBarClick
 }: ProgressBarProps) => {
-    const lastValidDurationRef = React.useRef(duration);
-    const lastValidCurrentTimeRef = React.useRef(currentTime);
-    const lastValidProgressRef = React.useRef(progressPercentage);
+    const lastValidDurationRef = useRef(duration);
+    const lastValidCurrentTimeRef = useRef(currentTime);
+    const lastValidProgressRef = useRef(progressPercentage);
 
     // Update refs when we have valid values
-    React.useEffect(() => {
+    useEffect(() => {
         // Always update refs with the latest values if they're valid
         if (duration > 0) {
             lastValidDurationRef.current = duration;
