@@ -339,13 +339,13 @@ export default function ArtistDashboard() {
                                                         >
                                                             <Edit className="h-4 w-4" />
                                                         </button> */}
-                                                        <button
+                                                        {/* <button
                                                             onClick={() => handleDeleteTrack(track.id)}
                                                             className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-red-400"
                                                             title="Delete Track"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
-                                                        </button>
+                                                        </button> */}
                                                     </div>
                                                 </td>
                                             </tr>

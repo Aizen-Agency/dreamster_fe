@@ -661,9 +661,9 @@ export default function UserProfile() {
                                                             <Play className="h-5 w-5" />
                                                         )}
                                                     </button>
-                                                    <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
+                                                    {/* <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
                                                         <Download className="h-5 w-5" />
-                                                    </button>
+                                                    </button> */}
                                                     <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <Share2 className="h-5 w-5" />
                                                     </button>

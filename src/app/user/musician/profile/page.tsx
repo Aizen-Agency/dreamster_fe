@@ -568,9 +568,9 @@ export default function UserProfile() {
                                                     )}
                                                 </button>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
+                                                    {/* <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
                                                         <Download className="h-4 w-4" />
-                                                    </button>
+                                                    </button> */}
                                                     <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <Share2 className="h-4 w-4" />
                                                     </button>
