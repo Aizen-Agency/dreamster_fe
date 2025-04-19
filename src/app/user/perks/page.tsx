@@ -403,7 +403,7 @@ export default function MemberPerks() {
                         )}
 
                         {/* Discord Community Tab */}
-                        {activeTab === "discord" && (
+                        {activeTab === "discord" && !isLoading && !error && (
                             <div>
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
@@ -442,18 +442,30 @@ export default function MemberPerks() {
                                                     Weekly Events
                                                 </span>
                                             </div>
-                                            <a
-                                                href="#"
-                                                className="inline-flex items-center justify-center px-6 py-2.5 rounded font-bold tracking-wider bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_15px_rgba(99,102,241,0.7)] transition-all gap-2"
-                                            >
-                                                <MessageSquare className="h-5 w-5" />
-                                                JOIN OUR DISCORD
-                                            </a>
+                                            {categoryPerks && categoryPerks.length > 0 ? (
+                                                <a
+                                                    href={categoryPerks[0].s3_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center justify-center px-6 py-2.5 rounded font-bold tracking-wider bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_15px_rgba(99,102,241,0.7)] transition-all gap-2"
+                                                >
+                                                    <MessageSquare className="h-5 w-5" />
+                                                    JOIN OUR DISCORD
+                                                </a>
+                                            ) : (
+                                                <button
+                                                    disabled
+                                                    className="inline-flex items-center justify-center px-6 py-2.5 rounded font-bold tracking-wider bg-indigo-600/50 text-white/70 gap-2 cursor-not-allowed"
+                                                >
+                                                    <MessageSquare className="h-5 w-5" />
+                                                    DISCORD LINK UNAVAILABLE
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="bg-indigo-950/50 border border-indigo-800/30 rounded-lg p-5">
                                         <h3 className="font-medium text-fuchsia-400 mb-4 flex items-center">
                                             <Star className="h-5 w-5 mr-2" /> Featured Channels
@@ -505,7 +517,7 @@ export default function MemberPerks() {
                                             </li>
                                         </ul>
                                     </div>
-                                </div>
+                                </div> */}
                             </div>
                         )}
 
@@ -839,6 +851,7 @@ export default function MemberPerks() {
                                             if (perk.perk_type === 'url') Icon = ExternalLink
                                             if (perk.perk_type === 'audio') Icon = Music
                                             if (perk.perk_type === 'video') Icon = Video
+                                            if (perk.category === "discord") Icon = MessageSquare
 
                                             return (
                                                 <div
