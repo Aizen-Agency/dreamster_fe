@@ -37,6 +37,7 @@ export default function BrowseMusic() {
     const [sortOption, setSortOption] = useState<'newest' | 'popular' | 'created_at'>('newest')
     const audioRef = useRef<HTMLAudioElement>(null)
     const [volume, setVolume] = useState(0.7)
+    const lastPositionRef = useRef(0);
 
     // Get player state from store
     const {
@@ -71,6 +72,49 @@ export default function BrowseMusic() {
         visible: false,
         trackTitle: ""
     })
+
+    useEffect(() => {
+        if (!audioRef.current || !streamUrl) return
+
+        if (isPlaying) {
+            const currentSrc = audioRef.current.src;
+            if (!currentSrc || currentSrc !== streamUrl) {
+                lastPositionRef.current = audioRef.current.currentTime || 0;
+
+                audioRef.current.src = streamUrl;
+                audioRef.current.load();
+
+                const handleCanPlay = () => {
+                    if (!audioRef.current) return;
+                    // Restore position
+                    if (lastPositionRef.current > 0) {
+                        audioRef.current.currentTime = lastPositionRef.current;
+                    }
+
+                    audioRef.current.play().catch(err => {
+                        console.error("Playback failed:", err);
+                        setIsPlaying(false);
+                    });
+
+                    audioRef.current.removeEventListener('canplay', handleCanPlay);
+                };
+
+                audioRef.current.addEventListener('canplay', handleCanPlay);
+            } else {
+                if (lastPositionRef.current > 0) {
+                    audioRef.current.currentTime = lastPositionRef.current;
+                }
+
+                audioRef.current.play().catch(err => {
+                    console.error("Playback failed:", err);
+                    setIsPlaying(false);
+                });
+            }
+        } else if (audioRef.current) {
+            lastPositionRef.current = audioRef.current.currentTime || 0;
+            audioRef.current.pause();
+        }
+    }, [isPlaying, streamUrl, setIsPlaying])
 
     // Add handleShareTrack function
     const handleShareTrack = (track: Track): void => {
@@ -157,21 +201,6 @@ export default function BrowseMusic() {
         }
     }, [setCurrentTime, setDuration, setIsPlaying, volume])
 
-    // Handle play/pause
-    useEffect(() => {
-        if (!audioRef.current || !streamUrl) return
-
-        if (isPlaying) {
-            audioRef.current.src = streamUrl
-            audioRef.current.play().catch(err => {
-                console.error("Playback failed:", err)
-                setIsPlaying(false)
-            })
-        } else if (audioRef.current) {
-            audioRef.current.pause()
-        }
-    }, [isPlaying, streamUrl, setIsPlaying])
-
     // Handle volume change
     const handleVolumeChange = (newVolume: number) => {
         setVolume(newVolume)
@@ -180,9 +209,16 @@ export default function BrowseMusic() {
         }
     }
 
-    // Toggle play/pause
     const togglePlayPause = () => {
-        setIsPlaying(!isPlaying)
+        if (!audioRef.current) return;
+
+        if (isPlaying) {
+            lastPositionRef.current = audioRef.current.currentTime || 0;
+            audioRef.current.pause();
+            setIsPlaying(false);
+        } else {
+            setIsPlaying(true);
+        }
     }
 
     // Format time for display (mm:ss)
