@@ -134,7 +134,7 @@ export default function ProfileSelection() {
 
                 <div className="flex justify-between items-center">
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => window.history.back()}
                         className="text-cyan-300 text-sm flex items-center gap-1 hover:text-cyan-100 transition-colors"
                     >
                         <span>←</span> Back

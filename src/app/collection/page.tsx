@@ -98,7 +98,7 @@ export default function MusicCollection() {
             <div className="relative z-10 max-w-5xl mx-auto">
                 {/* Back button */}
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => window.history.back()}
                     className="mt-8 mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
