@@ -25,7 +25,6 @@ import {
 import Image from "next/image"
 import { useRouter, useParams } from "next/navigation"
 import { useArtistTracks } from "@/hooks/useArtistTracks"
-import { useAuthStore } from "@/store/authStore"
 import { usePlayerStore } from "@/store/playerStore"
 import { Track } from "@/types/track"
 import { useUserProfile } from "@/hooks/useProfile"
@@ -54,10 +53,7 @@ export default function UserProfile() {
     const [searchQuery, setSearchQuery] = useState("")
     const [showAddAssetModal, setShowAddAssetModal] = useState(false)
     const [isPlaying, setIsPlaying] = useState<string | null>(null)
-    // Get user ID from auth store
-    const userId = useAuthStore(state => state.user?.id)
-    const { data: userData, isLoading: userLoading, error: userError } = useUserProfile()
-    // Player state
+
     const { currentTrack, isPlaying: playerIsPlaying, setCurrentTrack, setIsPlaying: setPlayerIsPlaying } = usePlayerStore()
     // Fetch musician data
     const { data: musicianData, isLoading: musicianLoading, error: musicianError } = useMusician(musicianId)
@@ -257,10 +253,10 @@ export default function UserProfile() {
                     <h2 className="text-xl font-bold mb-2">Error Loading Musician Profile</h2>
                     <p>Unable to load musician data. Please try again later.</p>
                     <button
-                        onClick={() => router.push('/dashboard/admin')}
+                        onClick={() => router.back()}
                         className="mt-4 px-4 py-2 bg-indigo-900/50 border border-cyan-500/30 rounded-md text-cyan-300 hover:bg-indigo-800/50 transition-colors"
                     >
-                        Return to Dashboard
+                        Back
                     </button>
                 </div>
             </div>
