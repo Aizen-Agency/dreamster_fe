@@ -206,7 +206,7 @@ export default function MemberPerks() {
             <div className="max-w-6xl w-full mx-auto relative z-10">
                 {/* Back button */}
                 <button
-                    onClick={() => window.history.back()}
+                    onClick={() => router.push('/collection')}
                     className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />

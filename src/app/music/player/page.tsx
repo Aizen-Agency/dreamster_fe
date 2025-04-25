@@ -517,7 +517,7 @@ export default function MusicPlayer() {
             <div className="absolute top-6 left-6 z-20">
                 <div className="bg-indigo-950/50 backdrop-blur-sm rounded-full border border-fuchsia-500/30 p-2 shadow-[0_0_15px_rgba(255,44,201,0.2)]">
                     <Button
-                        onClick={() => window.history.back()}
+                        onClick={() => router.push('/music')}
                         variant="ghost"
                         size="icon"
                         className="text-cyan-400 hover:text-cyan-300 transition-colors z-20 hover:bg-indigo-950/50"

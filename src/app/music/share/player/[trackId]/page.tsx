@@ -392,7 +392,7 @@ export default function MusicPlayer() {
     const handleBack = () => {
         // Check if there's a previous page in the history
         if (window.history.length > 1) {
-            window.history.back()
+            router.push('/collection')
         } else {
             // If user came directly to this page (e.g., via a shared link)
             // Navigate to the music discovery page
