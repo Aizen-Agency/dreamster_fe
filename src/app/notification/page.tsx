@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, HeartIcon, MusicIcon, PlayIcon, StarIcon, UserIcon } from "lucide-react"
+import { BellIcon, HeartIcon, Music as MusicIcon, PlayIcon, StarIcon, UserIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 

@@ -390,7 +390,14 @@ export default function MusicPlayer() {
     }, [currentTime, isAuthenticated, isPlaying, showLoginPrompt]);
 
     const handleBack = () => {
-        router.back()
+        // Check if there's a previous page in the history
+        if (window.history.length > 1) {
+            router.back()
+        } else {
+            // If user came directly to this page (e.g., via a shared link)
+            // Navigate to the music discovery page
+            router.push('/music')
+        }
     }
 
     const handlePurchase = () => {
@@ -655,22 +662,6 @@ export default function MusicPlayer() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-            {process.env.NODE_ENV === 'development' && (
-                <div className="fixed bottom-0 left-0 bg-black/80 text-white p-2 text-xs max-w-xs overflow-auto max-h-40">
-                    <h4>Debug Info:</h4>
-                    <pre>
-                        {JSON.stringify({
-                            isAuthenticated,
-                            currentTime,
-                            duration,
-                            isPlaying,
-                            showLoginPrompt,
-                            previewLimit: PREVIEW_LIMIT_SECONDS
-                        }, null, 2)}
-                    </pre>
-                </div>
-            )}
         </div>
     )
 }

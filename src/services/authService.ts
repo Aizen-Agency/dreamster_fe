@@ -52,7 +52,7 @@ export const authService = {
             Cookies.set('token', response.data.token, {
                 secure: true,
                 sameSite: 'strict',
-                expires: 7 // 7 days
+                expires: 7
             });
             Cookies.set('isLoggedIn', 'true', {
                 secure: true,

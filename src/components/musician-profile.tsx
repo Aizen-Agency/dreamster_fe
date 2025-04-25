@@ -20,7 +20,7 @@ export default function MusicianProfile({ artistId }: { artistId: string }) {
                 image: musicianData.avatar || "/placeholder.svg?height=400&width=400&text=Artist",
                 bio: musicianData.bio || "No biography available for this artist.",
                 established: new Date(musicianData.created_at).getFullYear().toString() || "Unknown",
-                profileUrl: process.env.NODE_ENV == 'production' ? `https://dreamster-fe.vercel.app/share/musician/${musicianData.id}` : `http://localhost:3000/share/musician/${musicianData.id}`,
+                profileUrl: process.env.NODE_ENV == 'production' ? `https://dreamster-fe.vercel.app/music/share/musician/${musicianData.id}` : `http://localhost:3000/music/share/musician/${musicianData.id}`,
             })
         }
     }, [musicianData])

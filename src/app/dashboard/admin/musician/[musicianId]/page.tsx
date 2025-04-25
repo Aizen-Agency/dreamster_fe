@@ -354,14 +354,6 @@ export default function UserProfile() {
                                     </h1>
                                     <p className="text-cyan-300 opacity-80">{user.email}</p>
                                 </div>
-                                <div className="flex gap-3">
-                                    <button onClick={() => router.push('/user/profile')} className="px-4 py-2 rounded font-medium bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all">
-                                        Edit Profile
-                                    </button>
-                                    <button disabled={true} className="px-4 py-2 rounded font-medium border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
-                                        Follow
-                                    </button>
-                                </div>
                             </div>
                             <div className="mb-6">
                                 <h3 className="text-fuchsia-400 font-medium mb-2">Bio</h3>
@@ -547,7 +539,7 @@ export default function UserProfile() {
                                     >
                                         <div className="relative aspect-square">
                                             <Image
-                                                src={track.artwork_url || "/placeholder.svg"}
+                                                src={track.artwork_url || '/music_icon.avif'}
                                                 alt={track.title}
                                                 width={300}
                                                 height={300}

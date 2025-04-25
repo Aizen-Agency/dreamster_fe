@@ -273,9 +273,12 @@ export default function UserProfile() {
             {/* Main content */}
             <div className="relative z-10 max-w-7xl mx-auto">
                 {/* Back button */}
-                <button onClick={() => router.push('/dashboard/musician')} className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors">
+                <button
+                    onClick={() => router.back()}
+                    className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors"
+                >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Dashboard</span>
+                    <span>Back</span>
                 </button>
 
                 {/* User Profile Section */}

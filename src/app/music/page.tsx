@@ -22,6 +22,7 @@ import {
     CheckCircle,
     X,
     Share2,
+    ArrowLeft,
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -272,6 +273,15 @@ export default function BrowseMusic() {
 
             {/* Main content */}
             <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-8 pb-24">
+                {/* Back button */}
+                <button
+                    onClick={() => router.back()}
+                    className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back</span>
+                </button>
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                     <div>
@@ -380,7 +390,7 @@ export default function BrowseMusic() {
                                 {filteredTracks.map((track) => (
                                     <div key={track.id} className="group relative rounded-lg overflow-hidden aspect-square">
                                         <Image
-                                            src={track.artwork_url || "/placeholder.svg"}
+                                            src={track.artwork_url || '/music_icon.avif'}
                                             alt={track.title}
                                             width={200}
                                             height={200}
@@ -433,7 +443,7 @@ export default function BrowseMusic() {
                             <div className="flex items-center gap-3 w-full sm:w-auto">
                                 <div className="h-12 w-12 rounded bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)]">
                                     <Image
-                                        src={currentTrack.artwork_url || "/placeholder.svg"}
+                                        src={currentTrack.artwork_url || '/music_icon.avif'}
                                         alt={currentTrack.title}
                                         width={60}
                                         height={60}

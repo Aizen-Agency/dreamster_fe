@@ -18,9 +18,11 @@ import {
 import Image from "next/image"
 import { useAllPerks, usePerksByCategory, useDownloadPerk } from "@/hooks/useUserPerks"
 import { UserPerk } from "@/services/userPerksService"
+import { useRouter } from "next/navigation"
 
 export default function MemberPerks() {
     // Update the tab state options
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState("tracks")
 
     // Add notification state
@@ -915,12 +917,12 @@ export default function MemberPerks() {
                         Your premium membership unlocks all these exclusive benefits and more
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <button className="px-8 py-3 rounded font-bold tracking-wider bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all">
+                        <button onClick={() => router.push('/collection')} className="px-8 py-3 rounded font-bold tracking-wider bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all">
                             EXPLORE MORE
                         </button>
-                        <button className="px-8 py-3 rounded font-bold tracking-wider border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
+                        {/* <button className="px-8 py-3 rounded font-bold tracking-wider border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
                             ACCOUNT SETTINGS
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </div>

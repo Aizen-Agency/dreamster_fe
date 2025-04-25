@@ -15,6 +15,7 @@ import {
     ExternalLink,
     Edit,
     Trash2,
+    ArrowLeft,
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -23,7 +24,6 @@ import ProfileMenu from "@/components/ProfileMenu"
 import { useAuthStore } from "@/store/authStore"
 import { useArtistTracks } from "@/hooks/useArtistTracks"
 import { useDeleteTrack } from "@/hooks/useTrackManagement"
-import { Track } from "@/types/track"
 
 export default function ArtistDashboard() {
     const router = useRouter()
@@ -31,10 +31,8 @@ export default function ArtistDashboard() {
     const [currentPage, setCurrentPage] = useState(1)
     const { isLoggedIn, user } = useAuthStore()
 
-    // Get user ID from auth store
     const userId = useAuthStore(state => state.user?.id)
 
-    // Fetch artist tracks with pagination
     const { data: artistTracksData, isLoading, error } = useArtistTracks(
         userId || '',
         {
@@ -44,14 +42,11 @@ export default function ArtistDashboard() {
         }
     )
 
-    // Add delete track mutation
     const deleteTrackMutation = useDeleteTrack()
 
-    // State for confirmation dialog
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [trackToDelete, setTrackToDelete] = useState<string | null>(null)
 
-    // Filter tracks based on search query
     const filteredTracks = artistTracksData?.tracks.filter(track =>
         track.title.toLowerCase().includes(searchQuery.toLowerCase())
     ) || []
@@ -130,8 +125,16 @@ export default function ArtistDashboard() {
             <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-fuchsia-600 to-transparent opacity-20" />
 
             {/* Main content */}
-            <div className="relative z-10 max-w-7xl mx-auto">
-                {/* Header */}
+            <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-8">
+                {/* Back button */}
+                <button
+                    onClick={() => router.push('/')}
+                    className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Home</span>
+                </button>
+
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                     <div className="flex items-center gap-4">
                         <div className="h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-fuchsia-500 p-0.5 shadow-[0_0_15px_rgba(255,44,201,0.5)]">
@@ -170,9 +173,9 @@ export default function ArtistDashboard() {
                         <DollarSign className="h-4 w-4" />
                         WITHDRAW EARNINGS
                     </button>
-                    <button onClick={() => router.push('/music')} className="px-6 py-2.5 rounded font-bold tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_15px_rgba(99,102,241,0.7)] transition-all flex items-center justify-center gap-2 flex-1">
+                    <button onClick={() => router.push('/collection')} className="px-6 py-2.5 rounded font-bold tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_15px_rgba(99,102,241,0.7)] transition-all flex items-center justify-center gap-2 flex-1">
                         <Headphones className="h-4 w-4" />
-                        BROWSE MUSIC
+                        MUSIC COLLECTION
                     </button>
                 </div>
 
@@ -288,13 +291,23 @@ export default function ArtistDashboard() {
                                                     <div className="flex items-center gap-3">
                                                         <div className="h-10 w-10 rounded bg-gradient-to-br from-cyan-500 to-fuchsia-500 p-0.5 shadow-[0_0_10px_rgba(255,44,201,0.3)]">
                                                             <div className="h-full w-full rounded overflow-hidden">
-                                                                <Image
-                                                                    src={track.artwork_url || "/placeholder.svg"}
-                                                                    alt={track.title}
-                                                                    width={40}
-                                                                    height={40}
-                                                                    className="h-full w-full object-cover"
-                                                                />
+                                                                <div className="relative h-full w-full">
+                                                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-800 to-fuchsia-900 flex items-center justify-center artwork-loading">
+                                                                        <Music className="h-5 w-5 text-cyan-400" />
+                                                                    </div>
+                                                                    <Image
+                                                                        src={track.artwork_url || '/music_icon.avif'}
+                                                                        alt={track.title}
+                                                                        width={40}
+                                                                        height={40}
+                                                                        className="h-full w-full object-cover"
+                                                                        onLoad={(e) => {
+                                                                            const target = e.target as HTMLImageElement;
+                                                                            target.parentElement?.querySelector('.artwork-loading')?.classList.add('hidden');
+                                                                        }}
+                                                                    />
+                                                                </div>
+
                                                             </div>
                                                         </div>
                                                         <div>
@@ -339,13 +352,13 @@ export default function ArtistDashboard() {
                                                         >
                                                             <Edit className="h-4 w-4" />
                                                         </button> */}
-                                                        {/* <button
+                                                        <button
                                                             onClick={() => handleDeleteTrack(track.id)}
                                                             className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-red-400"
                                                             title="Delete Track"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
-                                                        </button> */}
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -389,6 +402,42 @@ export default function ArtistDashboard() {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            {isDeleteDialogOpen && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+                    <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-lg shadow-[0_0_15px_rgba(255,44,201,0.3)] border border-fuchsia-500/30 p-6 max-w-md w-full mx-4 backdrop-blur-sm">
+                        <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
+                            Delete Track
+                        </h3>
+                        <p className="text-cyan-300 mb-6">
+                            Are you sure you want to delete this track? This action cannot be undone.
+                        </p>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={cancelDeleteTrack}
+                                className="flex-1 py-2 rounded font-medium bg-indigo-950/50 border border-cyan-500/30 text-cyan-300 hover:bg-indigo-900/50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => confirmDeleteTrack()}
+                                className="flex-1 py-2 rounded font-medium bg-gradient-to-r from-red-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)] hover:shadow-[0_0_15px_rgba(239,68,68,0.7)] transition-all"
+                                disabled={deleteTrackMutation.isPending}
+                            >
+                                {deleteTrackMutation.isPending ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                        Deleting...
+                                    </div>
+                                ) : (
+                                    "Delete Track"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

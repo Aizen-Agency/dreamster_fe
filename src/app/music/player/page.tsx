@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Share2, Download, ShoppingCart, Check } from "lucide-react"
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Share2, Download, ShoppingCart, Check, ArrowLeft, Music } from "lucide-react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { usePlayerStore } from "@/store/playerStore"
@@ -513,6 +513,20 @@ export default function MusicPlayer() {
             {/* Sun/horizon glow */}
             <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-fuchsia-600 to-transparent opacity-20" />
 
+            {/* Back button */}
+            <div className="absolute top-6 left-6 z-20">
+                <div className="bg-indigo-950/50 backdrop-blur-sm rounded-full border border-fuchsia-500/30 p-2 shadow-[0_0_15px_rgba(255,44,201,0.2)]">
+                    <Button
+                        onClick={() => router.back()}
+                        variant="ghost"
+                        size="icon"
+                        className="text-cyan-400 hover:text-cyan-300 transition-colors z-20 hover:bg-indigo-950/50"
+                    >
+                        <ArrowLeft size={24} />
+                    </Button>
+                </div>
+            </div>
+
             {/* Hidden audio element */}
             <audio ref={audioRef} />
 
@@ -529,12 +543,13 @@ export default function MusicPlayer() {
                         <div className="bg-indigo-950/50 backdrop-blur-sm rounded-lg border border-fuchsia-500/30 p-6 shadow-[0_0_15px_rgba(255,44,201,0.2)]">
                             <div className="mb-6 flex flex-col items-center">
                                 <Image
-                                    src={currentTrack.artwork_url || "/placeholder.svg"}
+                                    src={currentTrack.artwork_url || '/music_icon.avif'}
                                     alt={currentTrack.title}
                                     width={300}
                                     height={300}
                                     className="w-full h-full object-cover"
                                 />
+
                                 <h1 className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 mb-2">
                                     {currentTrack.title}
                                 </h1>

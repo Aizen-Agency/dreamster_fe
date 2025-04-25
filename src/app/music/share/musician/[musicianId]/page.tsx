@@ -239,6 +239,7 @@ export default function UserProfile() {
             .catch(err => {
                 console.error("Failed to copy:", err);
             });
+        window.open(shareUrl, '_blank');
     }
 
     if (musicianLoading) {
@@ -355,12 +356,9 @@ export default function UserProfile() {
                                     <p className="text-cyan-300 opacity-80">{user.email}</p>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button onClick={() => router.push('/user/profile')} className="px-4 py-2 rounded font-medium bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all">
-                                        Edit Profile
-                                    </button>
-                                    <button disabled={true} className="px-4 py-2 rounded font-medium border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
+                                    {/* <button disabled={true} className="px-4 py-2 rounded font-medium border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
                                         Follow
-                                    </button>
+                                    </button> */}
                                 </div>
                             </div>
                             <div className="mb-6">
@@ -547,7 +545,7 @@ export default function UserProfile() {
                                     >
                                         <div className="relative aspect-square">
                                             <Image
-                                                src={track.artwork_url || "/placeholder.svg"}
+                                                src={track.artwork_url || "/music_icon.avif"}
                                                 alt={track.title}
                                                 width={300}
                                                 height={300}
@@ -556,7 +554,7 @@ export default function UserProfile() {
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <button
                                                     className="p-4 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_15px_rgba(232,121,249,0.7)] transform scale-90 group-hover:scale-100 transition-transform"
-                                                    onClick={() => handlePlayTrack(track)}
+                                                    onClick={() => handleShareTrack(track)}
                                                 >
                                                     {currentTrack?.id === track.id && playerIsPlaying ? (
                                                         <Pause className="h-6 w-6" />

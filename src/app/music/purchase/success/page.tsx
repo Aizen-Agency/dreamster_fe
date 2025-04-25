@@ -94,13 +94,13 @@ export default function PurchaseSuccess() {
                         Listen Now <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
 
-                    <Button
+                    {/* <Button
                         onClick={handleViewLibrary}
                         variant="outline"
                         className="w-full border-cyan-500 text-cyan-500 hover:bg-cyan-950/50"
                     >
                         View My Library
-                    </Button>
+                    </Button> */}
 
                     {trackData?.exclusive && (
                         <Button
@@ -112,7 +112,7 @@ export default function PurchaseSuccess() {
                             Download Exclusive Content
                         </Button>
                     )}
-
+                    {/* 
                     <div className="pt-4 border-t border-indigo-800/30 mt-4">
                         <a
                             href={`https://etherscan.io/token/${process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}?a=${ownershipData?.token_id}`}
@@ -122,7 +122,7 @@ export default function PurchaseSuccess() {
                         >
                             View on Blockchain <ExternalLink className="ml-1 h-3 w-3" />
                         </a>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>

@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Line } from 'react-chartjs-2'
+import ProfileMenu from "@/components/ProfileMenu"
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -291,13 +292,16 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                        <button
-                            onClick={handleAddUser}
-                            className="px-6 py-2.5 rounded font-bold tracking-wider bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial"
-                        >
-                            <UserPlus className="h-4 w-4" />
-                            ADD NEW USER
-                        </button>
+                        <div className="flex items-center gap-4">
+                            {/* <button
+                                onClick={handleAddUser}
+                                className="px-6 py-2.5 rounded font-bold tracking-wider bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                            >
+                                <UserPlus className="h-4 w-4" />
+                                ADD NEW USER
+                            </button> */}
+                            <ProfileMenu />
+                        </div>
                     </div>
                 </div>
 
@@ -485,7 +489,7 @@ export default function AdminDashboard() {
                                                 <td className="py-4 px-4">
                                                     <div className="flex items-center gap-1.5">
                                                         {getRoleIcon(user.role)}
-                                                        <span className="text-cyan-100 capitalize">{user.role}</span>
+                                                        <span className="text-cyan-100 capitalize">{user.role ?? "N/A"}</span>
                                                     </div>
                                                 </td>
                                                 <td className="py-4 px-4 text-cyan-100">
