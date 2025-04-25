@@ -665,9 +665,9 @@ export default function UserProfile() {
                                                     <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <Share2 className="h-5 w-5" />
                                                     </button>
-                                                    <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
+                                                    {/* <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <MoreHorizontal className="h-5 w-5" />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </td>
                                         </tr>

@@ -107,6 +107,17 @@ export default function ProfileMenu({ showIcon = true }: ProfileMenuProps) {
                         >
                             {logoutMutation.isPending ? "Logging out..." : "Sign out"}
                         </button>
+                        {
+                            role === 'admin' && (
+                                <Link
+                                    href={'/dashboard/admin/tracks'}
+                                    className="block w-full text-left px-4 py-2 text-sm text-cyan-300 hover:bg-indigo-900 transition-colors"
+                                    role="menuitem"
+                                >
+                                    Tracks Dashboard
+                                </Link>
+                            )
+                        }
                     </div>
                 </div>
             )}

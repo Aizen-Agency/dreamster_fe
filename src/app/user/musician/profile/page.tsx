@@ -330,9 +330,6 @@ export default function UserProfile() {
                                     <button onClick={() => router.push('/user/profile')} className="px-4 py-2 rounded font-medium bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.5)] hover:shadow-[0_0_15px_rgba(232,121,249,0.7)] transition-all">
                                         Edit Profile
                                     </button>
-                                    <button disabled={true} className="px-4 py-2 rounded font-medium border border-cyan-400/50 text-cyan-300 hover:bg-cyan-950/30 transition-all">
-                                        Follow
-                                    </button>
                                 </div>
                             </div>
                             <div className="mb-6">
@@ -577,9 +574,9 @@ export default function UserProfile() {
                                                     <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <Share2 className="h-4 w-4" />
                                                     </button>
-                                                    <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
+                                                    {/* <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <MoreHorizontal className="h-4 w-4" />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </div>
                                         </div>
@@ -659,15 +656,15 @@ export default function UserProfile() {
                                                             <Play className="h-5 w-5" />
                                                         )}
                                                     </button>
-                                                    <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
+                                                    {/* <button onClick={() => handleDownloadTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-fuchsia-400">
                                                         <Download className="h-5 w-5" />
-                                                    </button>
+                                                    </button> */}
                                                     <button onClick={() => handleShareTrack(track)} className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <Share2 className="h-5 w-5" />
                                                     </button>
-                                                    <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
+                                                    {/* <button className="p-1.5 rounded-md hover:bg-indigo-800/50 transition-colors text-cyan-300">
                                                         <MoreHorizontal className="h-5 w-5" />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </td>
                                         </tr>
