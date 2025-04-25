@@ -121,7 +121,7 @@ export default function AdminTracks() {
                             >
                                 Rejected
                             </button>
-                            <button
+                            {/* <button
                                 onClick={() => setFilter("all")}
                                 className={`px-3 py-1 rounded-full text-xs ${filter === "all"
                                     ? "bg-cyan-500 text-white"
@@ -129,7 +129,7 @@ export default function AdminTracks() {
                                     }`}
                             >
                                 All Tracks
-                            </button>
+                            </button> */}
                         </div>
                     </div>
 

@@ -91,6 +91,14 @@ export default function ProfileMenu({ showIcon = true }: ProfileMenuProps) {
                         >
                             Your Profile
                         </Link>
+                        <Link
+                            href={'/user/wallet'}
+                            className="block px-4 py-2 text-sm text-cyan-300 hover:bg-indigo-900 transition-colors"
+                            role="menuitem"
+                            onClick={() => setIsOpen(false)}
+                        >
+                            Your Wallet
+                        </Link>
                         {/* <Link
                             href="/settings"
                             className="block px-4 py-2 text-sm text-cyan-300 hover:bg-indigo-900 transition-colors"
