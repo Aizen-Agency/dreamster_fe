@@ -253,7 +253,7 @@ export default function UserProfile() {
                     <h2 className="text-xl font-bold mb-2">Error Loading Musician Profile</h2>
                     <p>Unable to load musician data. Please try again later.</p>
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => router.push('/dashboard/musician')}
                         className="mt-4 px-4 py-2 bg-indigo-900/50 border border-cyan-500/30 rounded-md text-cyan-300 hover:bg-indigo-800/50 transition-colors"
                     >
                         Back
@@ -301,7 +301,7 @@ export default function UserProfile() {
             {/* Main content */}
             <div className="relative z-10 max-w-7xl mx-auto">
                 {/* Back button */}
-                <button onClick={() => router.push('/dashboard/musician')} className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors">
+                <button onClick={() => router.back()} className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors">
                     <ArrowLeft className="h-4 w-4" />
                     <span>Back to Dashboard</span>
                 </button>
