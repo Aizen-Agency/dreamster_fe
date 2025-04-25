@@ -14,6 +14,7 @@ import {
     Headphones,
     X,
     CheckCircle,
+    ArrowLeft,
 } from "lucide-react"
 import Image from "next/image"
 import { useAllPerks, usePerksByCategory, useDownloadPerk } from "@/hooks/useUserPerks"
@@ -203,6 +204,15 @@ export default function MemberPerks() {
             )}
 
             <div className="max-w-6xl w-full mx-auto relative z-10">
+                {/* Back button */}
+                <button
+                    onClick={() => router.back()}
+                    className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back</span>
+                </button>
+
                 {/* Header */}
                 <div className="text-center mb-10">
                     <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 tracking-wider mb-4">
