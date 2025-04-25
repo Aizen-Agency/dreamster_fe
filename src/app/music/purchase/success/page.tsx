@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { CheckCircle, ArrowRight, Download, ExternalLink } from "lucide-react"
+import { CheckCircle, ArrowRight, Download, ExternalLink, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTrackDetails } from "@/hooks/useTrackDetails"
 import { useCheckTrackOwnership } from "@/hooks/usePayments"
@@ -39,6 +39,20 @@ export default function PurchaseSuccess() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Back button */}
+            <div className="absolute top-6 left-6 z-20">
+                <div className="bg-indigo-950/50 backdrop-blur-sm rounded-full border border-fuchsia-500/30 p-2 shadow-[0_0_15px_rgba(255,44,201,0.2)]">
+                    <Button
+                        onClick={() => router.push('/music')}
+                        variant="ghost"
+                        size="icon"
+                        className="text-cyan-400 hover:text-cyan-300 transition-colors z-20 hover:bg-indigo-950/50"
+                    >
+                        <ArrowLeft size={24} />
+                    </Button>
+                </div>
+            </div>
+
             {/* Grid background */}
             <div
                 className="absolute inset-0 opacity-20"
