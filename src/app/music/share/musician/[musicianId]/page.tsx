@@ -537,7 +537,7 @@ export default function UserProfile() {
                                     <div
                                         key={track.id}
                                         className="group relative rounded-lg overflow-hidden aspect-square bg-indigo-900/30 border border-indigo-800/50 hover:border-cyan-500/50 transition-colors"
-                                        onClick={() => router.push(`/dashboard/admin/track/${track.id}`)}
+                                        onClick={() => user.role === "admin" ? router.push(`/dashboard/admin/track/${track.id}`) : router.push(`/music/share/player/${track.id}`)}
                                     >
                                         <div className="relative aspect-square">
                                             <Image
