@@ -155,26 +155,43 @@ export default function MusicPlayer() {
         setCurrentTime(seekTime);
     };
 
-    // Simplified play/pause toggle that respects preview limit
+    const setLimit = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        }
+    }
+
+    useEffect(() => {
+        if (audioRef.current) {
+            if (lastKnownPositionRef.current <= audioRef.current.currentTime) {
+                setLimit()
+                setShowLoginPrompt(true)
+            }
+        }
+    }, [audioRef.current, progressPercentage])
+
     const togglePlay = () => {
         if (audioRef.current) {
+            if (lastKnownPositionRef.current <= audioRef.current.currentTime) {
+                setLimit()
+                setShowLoginPrompt(true)
+            }
             if (isPlaying) {
                 audioRef.current.pause();
                 setIsPlaying(false);
 
-                // Store the last known position when pausing
                 lastKnownPositionRef.current = audioRef.current.currentTime;
             } else {
-                // Check if we're already at or beyond the preview limit for non-authenticated users
                 if (!isAuthenticated && audioRef.current.currentTime >= PREVIEW_LIMIT_SECONDS) {
                     setShowLoginPrompt(true);
                     return;
                 }
 
-                // Start playing
                 audioRef.current.play()
                     .then(() => {
                         setIsPlaying(true);
+                        setTimeout(() => setLimit(), 30000)
                     })
                     .catch(err => {
                         console.error("Playback failed:", err);
