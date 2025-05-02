@@ -163,13 +163,13 @@ export default function MusicPlayer() {
     }
 
     useEffect(() => {
-        if (audioRef.current) {
+        if (audioRef.current && lastKnownPositionRef.current) {
             if (lastKnownPositionRef.current >= 30) {
                 setLimit()
                 setShowLoginPrompt(true)
             }
         }
-    }, [audioRef.current, progressPercentage])
+    }, [lastKnownPositionRef.current, audioRef.current, progressPercentage])
 
     const togglePlay = () => {
         if (audioRef.current) {
