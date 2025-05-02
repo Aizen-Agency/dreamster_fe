@@ -178,6 +178,12 @@ export default function MusicPlayer() {
                 setShowLoginPrompt(true)
             }
             if (isPlaying) {
+                if (audioRef.current.currentTime >= 30) {
+                    setLimit()
+                    setShowLoginPrompt(true);
+                    return;
+                }
+
                 audioRef.current.pause();
                 setIsPlaying(false);
 
