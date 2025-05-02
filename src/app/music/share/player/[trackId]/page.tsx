@@ -159,6 +159,7 @@ export default function MusicPlayer() {
         if (audioRef.current) {
             audioRef.current.pause();
             setIsPlaying(false);
+            setShowLoginPrompt(true)
         }
     }
 
@@ -166,24 +167,29 @@ export default function MusicPlayer() {
         if (audioRef.current && lastKnownPositionRef.current) {
             if (lastKnownPositionRef.current >= 30) {
                 setLimit()
-                setShowLoginPrompt(true)
             }
         }
     }, [lastKnownPositionRef.current, audioRef.current, progressPercentage])
+
+    useEffect(() => {
+        if (audioRef.current && isPlaying) {
+            if (audioRef.current.currentTime >= 30) {
+                setLimit()
+            }
+        }
+    }, [audioRef.current, isPlaying])
 
     const togglePlay = () => {
         if (audioRef.current) {
             if (lastKnownPositionRef.current >= 30) {
                 setLimit()
-                setShowLoginPrompt(true)
+                return
             }
             if (isPlaying) {
-                if (audioRef.current.currentTime >= 30) {
+                if (lastKnownPositionRef.current >= 30) {
                     setLimit()
-                    setShowLoginPrompt(true);
-                    return;
+                    return
                 }
-
                 audioRef.current.pause();
                 setIsPlaying(false);
 
@@ -191,8 +197,7 @@ export default function MusicPlayer() {
             } else {
                 if (!isAuthenticated && audioRef.current.currentTime >= 30) {
                     setLimit()
-                    setShowLoginPrompt(true);
-                    return;
+                    return
                 }
 
                 audioRef.current.play()
