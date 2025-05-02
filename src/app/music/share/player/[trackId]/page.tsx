@@ -164,7 +164,7 @@ export default function MusicPlayer() {
 
     useEffect(() => {
         if (audioRef.current) {
-            if (lastKnownPositionRef.current <= audioRef.current.currentTime) {
+            if (lastKnownPositionRef.current >= 30) {
                 setLimit()
                 setShowLoginPrompt(true)
             }
@@ -173,7 +173,7 @@ export default function MusicPlayer() {
 
     const togglePlay = () => {
         if (audioRef.current) {
-            if (lastKnownPositionRef.current <= audioRef.current.currentTime) {
+            if (lastKnownPositionRef.current >= 30) {
                 setLimit()
                 setShowLoginPrompt(true)
             }
@@ -183,7 +183,8 @@ export default function MusicPlayer() {
 
                 lastKnownPositionRef.current = audioRef.current.currentTime;
             } else {
-                if (!isAuthenticated && audioRef.current.currentTime >= PREVIEW_LIMIT_SECONDS) {
+                if (!isAuthenticated && audioRef.current.currentTime >= 30) {
+                    setLimit()
                     setShowLoginPrompt(true);
                     return;
                 }
@@ -201,15 +202,12 @@ export default function MusicPlayer() {
         }
     };
 
-    // Update progress percentage with preview limit cap
     useEffect(() => {
         if (duration > 0) {
-            // For non-authenticated users, cap the visual progress
             if (!isAuthenticated) {
                 const maxAllowedPercentage = (PREVIEW_LIMIT_SECONDS / duration) * 100;
                 setProgressPercentage(Math.min((currentTime / duration) * 100, maxAllowedPercentage));
             } else {
-                // For authenticated users, show full progress
                 setProgressPercentage((currentTime / duration) * 100);
             }
         } else {
